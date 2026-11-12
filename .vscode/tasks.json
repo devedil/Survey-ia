@@ -1,0 +1,201 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "check-tools",
+			"type": "shell",
+			"command": "node --version && npm --version && python --version && docker --version && dir",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "inspect-workspace",
+			"type": "shell",
+			"command": "Get-ChildItem -Force",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "check-python-env",
+			"type": "shell",
+			"command": "\"C:\\Users\\Marketing CMV\\Desktop\\survey ia\\.venv\\Scripts\\python.exe\" --version; \"C:\\Program Files\\nodejs\\node.exe\" --version; npm --version; docker --version",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "check-versions",
+			"type": "shell",
+			"command": "& \"C:\\Users\\Marketing CMV\\Desktop\\survey ia\\.venv\\Scripts\\python.exe\" --version; & \"C:\\Program Files\\nodejs\\node.exe\" --version; npm --version; docker --version",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "check-more",
+			"type": "shell",
+			"command": "Set-Location \"C:\\Users\\Marketing CMV\\Desktop\\survey ia\"; .\\.venv\\Scripts\\python.exe --version; node --version; npm --version; docker --version",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "show-location",
+			"type": "shell",
+			"command": "Get-Location; Get-ChildItem -Name",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "init-project-structure",
+			"type": "shell",
+			"command": "New-Item -ItemType Directory -Force -Path .\\backend\\app\\core, .\\backend\\app\\profiles, .\\backend\\alembic, .\\backend\\tests, .\\frontend, .\\docs, .\\docker | Out-Null; Get-ChildItem -Recurse",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "bootstrap-angular",
+			"type": "shell",
+			"command": "Set-Location \"C:\\Users\\Marketing CMV\\Desktop\\survey ia\"; npx --yes @angular/cli@20 new frontend --defaults --skip-git --style=css --routing=false --ssr=false --skip-install",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "set-angular-shell",
+			"type": "shell",
+			"command": "Set-Content -Path \"C:\\Users\\Marketing CMV\\Desktop\\survey ia\\frontend\\src\\app\\app.ts\" -Value \"import { Component, signal } from '@angular/core';\n\n@Component({\n  selector: 'app-root',\n  imports: [],\n  templateUrl: './app.html',\n  styleUrl: './app.css'\n})\nexport class App {\n  protected readonly title = signal('AI Survey Assistant');\n}\n\"; Set-Content -Path \"C:\\Users\\Marketing CMV\\Desktop\\survey ia\\frontend\\src\\app\\app.css\" -Value \":host { display: block; min-height: 100vh; font-family: Arial, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #111827 100%); color: #e5e7eb; }\n\n* { box-sizing: border-box; }\n\nmain { min-height: 100vh; display: grid; place-items: center; padding: 2rem; }\n\n.panel { width: min(720px, 100%); background: rgba(15, 23, 42, 0.78); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 20px; padding: 2.5rem; box-shadow: 0 25px 50px rgba(15, 23, 42, 0.45); }\n\n.eyebrow { margin: 0 0 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.7rem; color: #a5b4fc; }\n\nh1 { margin: 0; font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.1; }\n\np { margin: 1rem 0 0; color: #cbd5e1; line-height: 1.6; }\n\n.badges { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }\n\n.badge { background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 999px; padding: 0.5rem 0.9rem; font-size: 0.82rem; color: #dbeafe; }\n\"; Set-Content -Path \"C:\\Users\\Marketing CMV\\Desktop\\survey ia\\frontend\\src\\app\\app.html\" -Value \"<main>\n  <section class=\"panel\">\n    <p class=\"eyebrow\">Fase 0</p>\n    <h1>{{ title() }}</h1>\n    <p>\n      Entorno base inicial preparado para la aplicación local: backend FastAPI,\n      frontend Angular y PostgreSQL con pgvector.\n    </p>\n    <div class=\"badges\">\n      <span class=\"badge\">FastAPI</span>\n      <span class=\"badge\">Angular</span>\n      <span class=\"badge\">PostgreSQL + pgvector</span>\n      <span class=\"badge\">Control humano</span>\n    </div>\n  </section>\n</main>\n\"",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "write-angular-files",
+			"type": "shell",
+			"command": "@'\nimport { Component, signal } from '@angular/core';\n\n@Component({\n  selector: 'app-root',\n  imports: [],\n  templateUrl: './app.html',\n  styleUrl: './app.css'\n})\nexport class App {\n  protected readonly title = signal('AI Survey Assistant');\n}\n'@ | Set-Content -Path \"C:\\Users\\Marketing CMV\\Desktop\\survey ia\\frontend\\src\\app\\app.ts\"; @'\n:host {\n  display: block;\n  min-height: 100vh;\n  font-family: Arial, sans-serif;\n  background: linear-gradient(135deg, #0f172a 0%, #111827 100%);\n  color: #e5e7eb;\n}\n\n* { box-sizing: border-box; }\n\nmain {\n  min-height: 100vh;\n  display: grid;\n  place-items: center;\n  padding: 2rem;\n}\n\n.panel {\n  width: min(720px, 100%);\n  background: rgba(15, 23, 42, 0.78);\n  border: 1px solid rgba(148, 163, 184, 0.2);\n  border-radius: 20px;\n  padding: 2.5rem;\n  box-shadow: 0 25px 50px rgba(15, 23, 42, 0.45);\n}\n\n.eyebrow {\n  margin: 0 0 0.75rem;\n  text-transform: uppercase;\n  letter-spacing: 0.12em;\n  font-size: 0.7rem;\n  color: #a5b4fc;\n}\n\nh1 {\n  margin: 0;\n  font-size: clamp(2rem, 4vw, 3.25rem);\n  line-height: 1.1;\n}\n\np {\n  margin: 1rem 0 0;\n  color: #cbd5e1;\n  line-height: 1.6;\n}\n\n.badges {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 0.75rem;\n  margin-top: 1.5rem;\n}\n\n.badge {\n  background: rgba(96, 165, 250, 0.12);\n  border: 1px solid rgba(96, 165, 250, 0.25);\n  border-radius: 999px;\n  padding: 0.5rem 0.9rem;\n  font-size: 0.82rem;\n  color: #dbeafe;\n}\n'@ | Set-Content -Path \"C:\\Users\\Marketing CMV\\Desktop\\survey ia\\frontend\\src\\app\\app.css\"; @'\n<main>\n  <section class=\"panel\">\n    <p class=\"eyebrow\">Fase 0</p>\n    <h1>{{ title() }}</h1>\n    <p>\n      Entorno base inicial preparado para la aplicación local: backend FastAPI,\n      frontend Angular y PostgreSQL con pgvector.\n    </p>\n    <div class=\"badges\">\n      <span class=\"badge\">FastAPI</span>\n      <span class=\"badge\">Angular</span>\n      <span class=\"badge\">PostgreSQL + pgvector</span>\n      <span class=\"badge\">Control humano</span>\n    </div>\n  </section>\n</main>\n'@ | Set-Content -Path \"C:\\Users\\Marketing CMV\\Desktop\\survey ia\\frontend\\src\\app\\app.html\"",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "write-angular-files-2",
+			"type": "shell",
+			"command": "Set-Content -Path \".\\frontend\\src\\app\\app.ts\" -Value @'\nimport { Component, signal } from '@angular/core';\n\n@Component({\n  selector: 'app-root',\n  imports: [],\n  templateUrl: './app.html',\n  styleUrl: './app.css'\n})\nexport class App {\n  protected readonly title = signal('AI Survey Assistant');\n}\n'@; Set-Content -Path \".\\frontend\\src\\app\\app.css\" -Value @'\n:host {\n  display: block;\n  min-height: 100vh;\n  font-family: Arial, sans-serif;\n  background: linear-gradient(135deg, #0f172a 0%, #111827 100%);\n  color: #e5e7eb;\n}\n\n* { box-sizing: border-box; }\n\nmain {\n  min-height: 100vh;\n  display: grid;\n  place-items: center;\n  padding: 2rem;\n}\n\n.panel {\n  width: min(720px, 100%);\n  background: rgba(15, 23, 42, 0.78);\n  border: 1px solid rgba(148, 163, 184, 0.2);\n  border-radius: 20px;\n  padding: 2.5rem;\n  box-shadow: 0 25px 50px rgba(15, 23, 42, 0.45);\n}\n\n.eyebrow {\n  margin: 0 0 0.75rem;\n  text-transform: uppercase;\n  letter-spacing: 0.12em;\n  font-size: 0.7rem;\n  color: #a5b4fc;\n}\n\nh1 {\n  margin: 0;\n  font-size: clamp(2rem, 4vw, 3.25rem);\n  line-height: 1.1;\n}\n\np {\n  margin: 1rem 0 0;\n  color: #cbd5e1;\n  line-height: 1.6;\n}\n\n.badges {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 0.75rem;\n  margin-top: 1.5rem;\n}\n\n.badge {\n  background: rgba(96, 165, 250, 0.12);\n  border: 1px solid rgba(96, 165, 250, 0.25);\n  border-radius: 999px;\n  padding: 0.5rem 0.9rem;\n  font-size: 0.82rem;\n  color: #dbeafe;\n}\n'@; Set-Content -Path \".\\frontend\\src\\app\\app.html\" -Value @'\n<main>\n  <section class=\"panel\">\n    <p class=\"eyebrow\">Fase 0</p>\n    <h1>{{ title() }}</h1>\n    <p>\n      Entorno base inicial preparado para la aplicación local: backend FastAPI,\n      frontend Angular y PostgreSQL con pgvector.\n    </p>\n    <div class=\"badges\">\n      <span class=\"badge\">FastAPI</span>\n      <span class=\"badge\">Angular</span>\n      <span class=\"badge\">PostgreSQL + pgvector</span>\n      <span class=\"badge\">Control humano</span>\n    </div>\n  </section>\n</main>\n'@",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "install-frontend-deps",
+			"type": "shell",
+			"command": "cd .\\frontend; npm install",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "install-frontend-deps-2",
+			"type": "shell",
+			"command": "cd .\\frontend; npm install --legacy-peer-deps",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "install-python-deps",
+			"type": "shell",
+			"command": ".\\.venv\\Scripts\\python.exe -m pip install -r .\\backend\\requirements.txt",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "install-python-deps-2",
+			"type": "shell",
+			"command": ".\\.venv\\Scripts\\python.exe -m pip install -r .\\backend\\requirements.txt",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "start-postgres",
+			"type": "shell",
+			"command": "docker compose up -d",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "run-backend",
+			"type": "shell",
+			"command": "cd .; .\\.venv\\Scripts\\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "check-backend-health",
+			"type": "shell",
+			"command": "Start-Sleep -Seconds 3; Invoke-WebRequest -Uri http://127.0.0.1:8000/health | Format-List *",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "check-backend-health-safe",
+			"type": "shell",
+			"command": "Start-Sleep -Seconds 3; Invoke-WebRequest -Uri http://127.0.0.1:8000/health -UseBasicParsing | ConvertTo-Json -Depth 5",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "check-backend-status",
+			"type": "shell",
+			"command": "Start-Sleep -Seconds 3; $r = Invoke-WebRequest -Uri http://127.0.0.1:8000/health -UseBasicParsing; $r.StatusCode; $r.Content",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "frontend-build",
+			"type": "shell",
+			"command": "cd .\\frontend; npm run build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "fix-frontend-deps",
+			"type": "shell",
+			"command": "cd .\\frontend; npm install fast-uri --save-dev",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "frontend-build-2",
+			"type": "shell",
+			"command": "cd .\\frontend; npm run build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "frontend-build-no-analytics",
+			"type": "shell",
+			"command": "$env:NG_CLI_ANALYTICS = 'false'; cd .\\frontend; npm run build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "run-frontend",
+			"type": "shell",
+			"command": "$env:NG_CLI_ANALYTICS = 'false'; cd .\\frontend; npm start -- --host 0.0.0.0 --port 4200",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "check-frontend-page",
+			"type": "shell",
+			"command": "Start-Sleep -Seconds 3; $r = Invoke-WebRequest -Uri http://127.0.0.1:4200 -UseBasicParsing; $r.StatusCode; $r.Content.Substring(0,300)",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "frontend-build-final",
+			"type": "shell",
+			"command": "$env:NG_CLI_ANALYTICS = 'false'; cd .\\frontend; npm run build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "pytest-health",
+			"type": "shell",
+			"command": ".\\.venv\\Scripts\\python.exe -m pytest .\\backend\\tests\\test_health.py",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
