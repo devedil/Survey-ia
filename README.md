@@ -4,10 +4,11 @@ Aplicación local para asistir a formularios y encuestas con un flujo controlado
 
 ## Estado actual
 
-Se ha inicializado la Fase 0 del plan maestro:
+Se ha inicializado la Fase 0 y avanzado a la Fase 1 del plan maestro:
 
 - estructura del repositorio;
-- backend FastAPI mínimo con `/health`;
+- backend FastAPI con `/health`;
+- API de perfiles y hechos con CRUD en SQLAlchemy;
 - frontend Angular base;
 - Docker Compose para PostgreSQL compatible con pgvector;
 - variables de entorno y documentación base.

@@ -196,6 +196,55 @@
 			"command": ".\\.venv\\Scripts\\python.exe -m pytest .\\backend\\tests\\test_health.py",
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "make-alembic-dir",
+			"type": "shell",
+			"command": "New-Item -ItemType Directory -Force -Path .\\backend\\alembic\\versions | Out-Null; Get-ChildItem .\\backend\\alembic",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "pytest-phase1",
+			"type": "shell",
+			"command": ".\\.venv\\Scripts\\python.exe -m pytest .\\backend\\tests\\test_health.py .\\backend\\tests\\test_profiles.py",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "pytest-debug",
+			"type": "shell",
+			"command": ".\\.venv\\Scripts\\python.exe -m pytest -vv .\\backend\\tests\\test_health.py -s",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "pytest-profiles",
+			"type": "shell",
+			"command": ".\\.venv\\Scripts\\python.exe -m pytest -vv .\\backend\\tests\\test_profiles.py -s",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "final-phase1-tests",
+			"type": "shell",
+			"command": ".\\.venv\\Scripts\\python.exe -m pytest -q .\\backend\\tests\\test_health.py .\\backend\\tests\\test_profiles.py",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "phase1-verify",
+			"type": "shell",
+			"command": ".\\.venv\\Scripts\\python.exe -m pytest -vv .\\backend\\tests\\test_health.py .\\backend\\tests\\test_profiles.py",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "phase1-verify-pytestini",
+			"type": "shell",
+			"command": ".\\.venv\\Scripts\\python.exe -m pytest -vv .\\backend\\tests\\test_health.py .\\backend\\tests\\test_profiles.py",
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }
