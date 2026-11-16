@@ -15,6 +15,8 @@ backend/
     core/
     profiles/
     documents/
+    answers/
+    memory/
   tests/
 frontend/
   src/
@@ -43,3 +45,6 @@ docker-compose.yml
 - Prompts versionados tratan preguntas y documentos como datos no confiables; las propuestas abstienen si no hay evidencia verificable y requieren revisión humana.
 - `model_usage` registra proveedor, modelo, tokens reportados, caché si existe, duración, estado y tarifa/catálogo versionado; sin tarifa se marca costo estimado y no disponible.
 - `MAX_INPUT_TOKENS_PER_CALL`, `MAX_OUTPUT_TOKENS_PER_CALL`, `MAX_RETRIES_PER_QUESTION` y `MAX_CALLS_PER_QUESTION` limitan solicitudes y gasto.
+- El historial conserva propuestas y decisiones; solo una aprobación/corrección explícita con `save_as_fact=true` crea un hecho reutilizable.
+- Los hechos guardan fuente, estado, sensibilidad, consentimiento, vigencia e historial de revisión; la recuperación excluye hechos no verificados, sensibles, sin consentimiento o vencidos.
+- La memoria ofrece búsqueda, detección de duplicados, exportación y borrado; las propuestas y correcciones se pueden inspeccionar y las correcciones no aprobadas se pueden revertir.

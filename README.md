@@ -4,7 +4,7 @@ Aplicación local para asistir a formularios y encuestas con un flujo controlado
 
 ## Estado actual
 
-Se han completado las Fases 0 a 3 del plan maestro:
+Se han completado las Fases 0 a 4 del plan maestro:
 
 - estructura del repositorio;
 - backend FastAPI con `/health`;
@@ -14,6 +14,8 @@ Se han completado las Fases 0 a 3 del plan maestro:
 - análisis de preguntas y propuestas de respuesta fundamentadas con abstención;
 - validación de citas/formato, detección de contradicciones y revisión humana;
 - registro de tokens, duración, estado y costo según catálogo de precios configurado;
+- historial de propuestas, aprobación/rechazo/corrección y memoria reutilizable solo con aprobación explícita;
+- procedencia, sensibilidad, consentimiento, vigencia, historial/reversión, búsqueda, deduplicación, exportación y borrado de hechos;
 - frontend Angular base;
 - Docker Compose para PostgreSQL compatible con pgvector;
 - variables de entorno y documentación base.
@@ -73,6 +75,11 @@ npm start -- --host 0.0.0.0
 - `DELETE /api/v1/documents/{document_id}`
 - `POST /api/v1/questions/analyze`
 - `POST /api/v1/answers/propose`
+- `GET /api/v1/answers?profile_id=<uuid>` y `GET /api/v1/answers/{proposal_id}`
+- `POST /api/v1/answers/{proposal_id}/approve|reject|correct`
+- `GET /api/v1/answers/{proposal_id}/history`
+- `GET|POST|DELETE /api/v1/memory`
+- `GET /api/v1/memory/export?profile_id=<uuid>` y `GET /api/v1/memory/duplicates?profile_id=<uuid>`
 
 Los formatos admitidos son PDF con texto, DOCX, TXT, MD y XLSX. XLSX se lee
 en modo de solo lectura y sin evaluar fórmulas ni macros. El contenido del
@@ -81,8 +88,12 @@ documento se trata como datos no confiables.
 Las propuestas de `/api/v1/answers/propose` siempre requieren revisión humana.
 Solo usan hechos verificados y fragmentos documentales recuperados, validan
 fuentes citadas y formato, y se abstienen ante falta de evidencia, datos
-sensibles o hechos contradictorios. Las llamadas a OpenAI requieren la
-migración vigente (`alembic upgrade head`) para registrar su uso.
+sensibles o hechos contradictorios. Las propuestas se conservan en el historial y nunca se convierten en hechos
+por sí solas. Para incorporar un hecho hace falta aprobarlo con
+`save_as_fact=true`; la búsqueda reutilizable excluye hechos no verificados,
+sensibles, sin consentimiento o vencidos. Los hechos pueden editarse,
+consultarse, exportarse y eliminarse. Las llamadas a OpenAI y la memoria
+requieren la migración vigente (`alembic upgrade head`).
 
 ## Seguridad
 

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import re
 
 from sqlalchemy import select
@@ -9,6 +10,7 @@ from backend.app.documents.embedding_service import EmbeddingConfigurationError,
 from backend.app.documents.models import Document
 from backend.app.documents.repository import search_chunks
 from backend.app.profiles.models import ProfileFact
+from backend.app.profiles.repository import expire_due_profile_facts
 
 
 @dataclass(frozen=True)
@@ -39,10 +41,19 @@ class MemoryManager:
         limit: int = 5,
         call_budget: ModelCallBudget | None = None,
     ) -> list[Evidence]:
+        expire_due_profile_facts(db, profile_id)
         question_terms = set(re.findall(r"\w+", query.casefold()))
         facts = db.scalars(
             select(ProfileFact)
-            .where(ProfileFact.profile_id == profile_id, ProfileFact.is_verified.is_(True))
+            .where(
+                ProfileFact.profile_id == profile_id,
+                ProfileFact.status == "verified",
+                ProfileFact.is_verified.is_(True),
+                ProfileFact.sensitivity.is_(False),
+                ProfileFact.consent_to_retrieve.is_(True),
+                (ProfileFact.valid_until.is_(None))
+                | (ProfileFact.valid_until > datetime.now(timezone.utc)),
+            )
             .order_by(ProfileFact.updated_at.desc())
             .limit(50)
         ).all()

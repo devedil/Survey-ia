@@ -3,11 +3,13 @@ from sqlalchemy.orm import Session
 from backend.app.ai.call_budget import ModelCallBudget
 from backend.app.ai.model_router import ModelRouter
 from backend.app.answers.generator import AnswerGenerator
-from backend.app.answers.memory_manager import Evidence, MemoryManager
+from backend.app.answers.memory_manager import MemoryManager
+from backend.app.answers.models import AnswerProposalRecord, AnswerSourceRecord
 from backend.app.answers.schemas import (
     AnswerFormat,
     AnswerProposal,
     AnswerProposeRequest,
+    ProposalStatus,
     SupportStatus,
 )
 from backend.app.questions.schemas import QuestionAnalysis, QuestionAnalyzeRequest
@@ -44,6 +46,36 @@ class AnswerService:
         return self.question_analyzer.analyze(db, profile_id, question, call_budget)
 
     def propose(self, db: Session, request: AnswerProposeRequest) -> AnswerProposal:
+        def finish(proposal: AnswerProposal) -> AnswerProposal:
+            record = AnswerProposalRecord(
+                profile_id=request.profile_id,
+                question_text=request.question_text,
+                answer_text=proposal.suggested_answer,
+                support_status=proposal.support_status.value,
+                confidence=proposal.confidence,
+                status="pending",
+                answer_format=proposal.answer_format.value,
+                question_analysis=proposal.question_analysis.model_dump(mode="json"),
+                needs_user_input=proposal.needs_user_input,
+                needs_review=proposal.needs_review,
+                review_reason=proposal.review_reason,
+            )
+            db.add(record)
+            db.flush()
+            db.add_all(
+                AnswerSourceRecord(
+                    proposal_id=record.id,
+                    source_type=source.source_type,
+                    source_id=source.source_id,
+                    excerpt=source.excerpt,
+                )
+                for source in proposal.sources
+            )
+            db.commit()
+            return proposal.model_copy(
+                update={"proposal_id": record.id, "status": ProposalStatus.PENDING}
+            )
+
         analysis = self.analyze(
             db,
             request.profile_id,
@@ -65,11 +97,11 @@ class AnswerService:
             question_analysis=analysis,
         )
         if is_sensitive_question(analysis.question_text):
-            return AnswerProposal(
+            return finish(AnswerProposal(
                 **empty,
                 support_status=SupportStatus.SENSITIVE,
                 review_reason="Sensitive personal information requires direct user review",
-            )
+            ))
 
         evidence = self.memory_manager.retrieve(
             db,
@@ -93,7 +125,7 @@ class AnswerService:
                 for item in evidence
                 if item.source_type == "profile_fact" and item.label in conflicts
             ]
-            return AnswerProposal(
+            return finish(AnswerProposal(
                 **{
                     **empty,
                     "sources": [
@@ -107,14 +139,14 @@ class AnswerService:
                 },
                 support_status=SupportStatus.CONTRADICTORY,
                 review_reason="Conflicting verified profile facts require user resolution",
-            )
+            ))
 
         if not evidence:
-            return AnswerProposal(
+            return finish(AnswerProposal(
                 **empty,
                 support_status=SupportStatus.INSUFFICIENT,
                 review_reason="No verified profile facts or indexed document evidence was found",
-            )
+            ))
 
         max_context_chars = self.model_router.settings.max_input_tokens_per_call * 3
         payload_evidence = []
@@ -126,21 +158,22 @@ class AnswerService:
             payload_evidence.append(item.as_payload())
             context_chars += serialized_size
         if not payload_evidence:
-            return AnswerProposal(
+            return finish(AnswerProposal(
                 **empty,
                 support_status=SupportStatus.INSUFFICIENT,
                 review_reason="Evidence exceeded the configured context limit",
-            )
+            ))
         if self.call_budget.exhausted:
-            return AnswerProposal(
+            return finish(AnswerProposal(
                 **empty,
                 support_status=SupportStatus.INSUFFICIENT,
                 review_reason="The configured model-call limit leaves no call for answer generation",
-            )
-        return self.answer_generator.generate(
+            ))
+        proposal = self.answer_generator.generate(
             db,
             request.profile_id,
             analysis,
             payload_evidence,
             self.call_budget,
         )
+        return finish(proposal)

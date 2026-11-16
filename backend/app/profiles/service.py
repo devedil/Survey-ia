@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 
 from backend.app.profiles.models import Profile, ProfileFact
@@ -8,10 +10,13 @@ from backend.app.profiles.repository import (
     delete_profile_fact,
     get_profile,
     get_profile_fact,
+    get_fact_revision,
+    list_fact_revisions,
     list_profile_facts,
     list_profiles,
     update_profile,
     update_profile_fact,
+    restore_fact_snapshot,
 )
 
 
@@ -36,6 +41,15 @@ class ProfileService:
         return list(list_profile_facts(db, profile_id))
 
     def add_fact(self, db: Session, profile_id: str, payload: dict) -> ProfileFact:
+        status = payload.get("status")
+        if status is None:
+            status = "verified" if payload.get("is_verified", True) else "pending"
+            payload["status"] = status
+        elif status not in {"pending", "verified", "rejected", "expired"}:
+            raise ValueError("Invalid fact status")
+        payload["is_verified"] = status == "verified"
+        if payload["is_verified"]:
+            payload.setdefault("confirmed_at", datetime.now(timezone.utc))
         fact = ProfileFact(profile_id=profile_id, **payload)
         return create_profile_fact(db, fact)
 
@@ -46,7 +60,28 @@ class ProfileService:
         return fact
 
     def update_fact(self, db: Session, fact: ProfileFact, payload: dict) -> ProfileFact:
+        if "status" in payload and payload["status"] is not None:
+            payload["is_verified"] = payload["status"] == "verified"
+            payload.setdefault(
+                "confirmed_at",
+                datetime.now(timezone.utc) if payload["is_verified"] else None,
+            )
+        elif "is_verified" in payload:
+            payload["status"] = "verified" if payload["is_verified"] else "pending"
+            payload.setdefault(
+                "confirmed_at",
+                datetime.now(timezone.utc) if payload["is_verified"] else None,
+            )
         return update_profile_fact(db, fact, payload)
+
+    def list_fact_history(self, db: Session, fact_id: str):
+        return list(list_fact_revisions(db, fact_id))
+
+    def restore_fact(self, db: Session, fact: ProfileFact, revision_id: str) -> ProfileFact | None:
+        revision = get_fact_revision(db, fact.id, revision_id)
+        if revision is None:
+            return None
+        return restore_fact_snapshot(db, fact, revision)
 
     def delete_fact(self, db: Session, fact: ProfileFact) -> None:
         delete_profile_fact(db, fact)

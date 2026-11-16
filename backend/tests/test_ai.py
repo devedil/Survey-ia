@@ -230,6 +230,145 @@ def test_sensitive_question_stops_before_answer_generation(client: TestClient):
     assert router.calls == []
 
 
+def test_approval_does_not_save_proposal_without_explicit_opt_in(client: TestClient):
+    profile_id = _create_profile(client)
+    _configure_ai(
+        client,
+        FakeModelRouter(),
+        [Evidence("profile_fact", "fact-1", "city: Madrid", "city")],
+    )
+    proposed = client.post(
+        "/api/v1/answers/propose",
+        json={"profile_id": profile_id, "question_text": "What is my city?"},
+    ).json()
+
+    approved = client.post(
+        f"/api/v1/answers/{proposed['proposal_id']}/approve",
+        params={"profile_id": profile_id},
+        json={},
+    )
+
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "approved"
+    assert client.get("/api/v1/memory", params={"profile_id": profile_id}).json() == []
+    feedback = client.get(
+        f"/api/v1/answers/{proposed['proposal_id']}/history",
+        params={"profile_id": profile_id},
+    )
+    assert feedback.status_code == 200
+    assert feedback.json()[0]["approved_for_memory"] is False
+
+
+def test_correction_can_be_reviewed_and_restored(client: TestClient):
+    profile_id = _create_profile(client)
+    _configure_ai(
+        client,
+        FakeModelRouter(),
+        [Evidence("profile_fact", "fact-1", "city: Madrid", "city")],
+    )
+    proposed = client.post(
+        "/api/v1/answers/propose",
+        json={"profile_id": profile_id, "question_text": "What is my city?"},
+    ).json()
+    proposal_id = proposed["proposal_id"]
+    corrected = client.post(
+        f"/api/v1/answers/{proposal_id}/correct",
+        params={"profile_id": profile_id},
+        json={"correction": "Sevilla"},
+    )
+    assert corrected.status_code == 200
+    assert corrected.json()["suggested_answer"] == "Sevilla"
+
+    history = client.get(
+        f"/api/v1/answers/{proposal_id}/history",
+        params={"profile_id": profile_id},
+    ).json()
+    restored = client.post(
+        f"/api/v1/answers/{proposal_id}/restore/{history[0]['id']}",
+        params={"profile_id": profile_id},
+    )
+
+    assert restored.status_code == 200
+    assert restored.json()["suggested_answer"] == "Madrid"
+    assert client.get("/api/v1/memory", params={"profile_id": profile_id}).json() == []
+
+
+def test_approved_fact_has_provenance_and_is_exported(client: TestClient):
+    profile_id = _create_profile(client)
+    _configure_ai(
+        client,
+        FakeModelRouter(),
+        [Evidence("profile_fact", "fact-1", "city: Madrid", "city")],
+    )
+    proposed = client.post(
+        "/api/v1/answers/propose",
+        json={"profile_id": profile_id, "question_text": "What is my city?"},
+    ).json()
+
+    approved = client.post(
+        f"/api/v1/answers/{proposed['proposal_id']}/approve",
+        params={"profile_id": profile_id},
+        json={
+            "save_as_fact": True,
+            "field_name": "city",
+            "consent_to_retrieve": True,
+        },
+    )
+
+    assert approved.status_code == 200
+    fact_id = approved.json()["created_fact_id"]
+    facts = client.get("/api/v1/memory", params={"profile_id": profile_id}).json()
+    assert len(facts) == 1
+    assert facts[0]["id"] == fact_id
+    assert facts[0]["source_type"] == "answer_proposal"
+    assert facts[0]["source_id"] == proposed["proposal_id"]
+    assert facts[0]["status"] == "verified"
+
+    export = client.get(
+        "/api/v1/memory/export",
+        params={"profile_id": profile_id},
+    )
+    assert export.status_code == 200
+    assert export.json()["facts"][0]["id"] == fact_id
+    assert export.json()["proposals"][0]["id"] == proposed["proposal_id"]
+
+
+def test_unverified_facts_are_not_searchable_and_expired_facts_are_marked(client: TestClient):
+    from datetime import datetime, timedelta, timezone
+
+    profile_id = _create_profile(client)
+    pending = client.post(
+        f"/api/v1/profiles/{profile_id}/facts",
+        json={"field_name": "city", "value": "Madrid", "is_verified": False},
+    )
+    assert pending.status_code == 201
+    assert pending.json()["status"] == "pending"
+
+    expired = client.post(
+        f"/api/v1/profiles/{profile_id}/facts",
+        json={
+            "field_name": "former_city",
+            "value": "Toledo",
+            "valid_until": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),
+        },
+    )
+    assert expired.status_code == 201
+    expired_fact_id = expired.json()["id"]
+    search = client.post(
+        "/api/v1/memory/search",
+        json={"profile_id": profile_id, "query": "city"},
+    )
+    assert search.status_code == 200
+    assert search.json() == []
+
+    memory = client.get(
+        "/api/v1/memory",
+        params={"profile_id": profile_id, "include_expired": True},
+    ).json()
+    expired_fact = next(fact for fact in memory if fact["id"] == expired_fact_id)
+    assert expired_fact["status"] == "expired"
+
+
 def test_contradictory_profile_facts_are_reported_without_generation(client: TestClient):
     profile_id = _create_profile(client)
     router = FakeModelRouter()

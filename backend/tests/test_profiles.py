@@ -70,6 +70,20 @@ def test_profile_and_fact_crud_flow(client: TestClient) -> None:
     assert updated_fact["value"] == "Sevilla"
     assert updated_fact["confidence"] == 0.8
 
+    response = client.get(f"/api/v1/profiles/{profile_id}/facts/{fact_id}/history")
+    assert response.status_code == 200
+    history = response.json()
+    assert any(revision["change_type"] == "updated" for revision in history)
+    created_revision = next(
+        revision for revision in history if revision["change_type"] == "created"
+    )
+
+    response = client.post(
+        f"/api/v1/profiles/{profile_id}/facts/{fact_id}/history/{created_revision['id']}/restore"
+    )
+    assert response.status_code == 200
+    assert response.json()["value"] == "Madrid"
+
     response = client.get(f"/api/v1/profiles/{profile_id}")
     assert response.status_code == 200
     assert response.json()["name"] == "Ana"
@@ -79,3 +93,33 @@ def test_profile_and_fact_crud_flow(client: TestClient) -> None:
 
     response = client.get(f"/api/v1/profiles/{profile_id}")
     assert response.status_code == 404
+
+
+def test_memory_detects_duplicates_and_deletes_facts(client: TestClient) -> None:
+    profile_id = client.post("/api/v1/profiles", json={"name": "Ana"}).json()["id"]
+    first = client.post(
+        f"/api/v1/profiles/{profile_id}/facts",
+        json={"field_name": "city", "value": "Madrid"},
+    ).json()
+    second = client.post(
+        f"/api/v1/profiles/{profile_id}/facts",
+        json={"field_name": "CITY", "value": "madrid"},
+    ).json()
+
+    duplicates = client.get(
+        "/api/v1/memory/duplicates",
+        params={"profile_id": profile_id},
+    )
+    assert duplicates.status_code == 200
+    assert len(duplicates.json()) == 1
+    assert set(duplicates.json()[0]["fact_ids"]) == {first["id"], second["id"]}
+
+    deleted = client.delete(
+        f"/api/v1/memory/{first['id']}",
+        params={"profile_id": profile_id},
+    )
+    assert deleted.status_code == 204
+    assert client.get(
+        "/api/v1/memory/duplicates",
+        params={"profile_id": profile_id},
+    ).json() == []

@@ -1,5 +1,3 @@
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
@@ -8,6 +6,7 @@ from backend.app.profiles.schemas import (
     ProfileCreate,
     ProfileFactCreate,
     ProfileFactRead,
+    ProfileFactRevisionRead,
     ProfileFactUpdate,
     ProfileRead,
     ProfileUpdate,
@@ -85,14 +84,7 @@ def create_fact(
     saved = profile_service.add_fact(
         db,
         profile_id,
-        {
-            "field_name": fact.field_name,
-            "value": fact.value,
-            "source": fact.source,
-            "confidence": fact.confidence,
-            "is_verified": fact.is_verified,
-            "notes": fact.notes,
-        },
+        fact.model_dump(exclude_unset=True),
     )
     return ProfileFactRead.model_validate(saved)
 
@@ -106,6 +98,47 @@ def get_fact(profile_id: str, fact_id: str, db: Session = Depends(get_db)) -> Pr
     if fact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fact not found")
     return ProfileFactRead.model_validate(fact)
+
+
+@router.get(
+    "/{profile_id}/facts/{fact_id}/history",
+    response_model=list[ProfileFactRevisionRead],
+)
+def fact_history(
+    profile_id: str,
+    fact_id: str,
+    db: Session = Depends(get_db),
+) -> list[ProfileFactRevisionRead]:
+    if profile_service.get_profile(db, profile_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
+    fact = profile_service.get_fact(db, profile_id, fact_id)
+    if fact is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fact not found")
+    return [
+        ProfileFactRevisionRead.model_validate(revision)
+        for revision in profile_service.list_fact_history(db, fact_id)
+    ]
+
+
+@router.post(
+    "/{profile_id}/facts/{fact_id}/history/{revision_id}/restore",
+    response_model=ProfileFactRead,
+)
+def restore_fact_revision(
+    profile_id: str,
+    fact_id: str,
+    revision_id: str,
+    db: Session = Depends(get_db),
+) -> ProfileFactRead:
+    if profile_service.get_profile(db, profile_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
+    fact = profile_service.get_fact(db, profile_id, fact_id)
+    if fact is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fact not found")
+    restored = profile_service.restore_fact(db, fact, revision_id)
+    if restored is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fact revision not found")
+    return ProfileFactRead.model_validate(restored)
 
 
 @router.patch("/{profile_id}/facts/{fact_id}", response_model=ProfileFactRead)

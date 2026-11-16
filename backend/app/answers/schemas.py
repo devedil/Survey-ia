@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, Field
@@ -21,6 +22,13 @@ class AnswerFormat(StrEnum):
     BOOLEAN = "boolean"
 
 
+class ProposalStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CORRECTED = "corrected"
+
+
 class AnswerSource(BaseModel):
     source_type: str
     source_id: str
@@ -36,6 +44,9 @@ class AnswerProposeRequest(BaseModel):
 
 
 class AnswerProposal(BaseModel):
+    proposal_id: str | None = None
+    created_fact_id: str | None = None
+    status: ProposalStatus = ProposalStatus.PENDING
     suggested_answer: str = Field(default="", max_length=10000)
     support_status: SupportStatus
     confidence: float = Field(..., ge=0.0, le=1.0)
@@ -45,3 +56,54 @@ class AnswerProposal(BaseModel):
     review_reason: str | None = None
     answer_format: AnswerFormat = AnswerFormat.TEXT
     question_analysis: QuestionAnalysis
+
+
+class AnswerProposalHistoryItem(BaseModel):
+    proposal_id: str
+    profile_id: str
+    question_text: str
+    suggested_answer: str
+    support_status: SupportStatus
+    confidence: float
+    status: ProposalStatus
+    answer_format: AnswerFormat
+    created_at: datetime
+    sources: list[AnswerSource]
+
+
+class ApproveProposalRequest(BaseModel):
+    save_as_fact: bool = False
+    field_name: str | None = Field(default=None, min_length=1, max_length=150)
+    category: str = Field(default="general", max_length=100)
+    sensitivity: bool = False
+    consent_to_retrieve: bool = False
+    valid_until: datetime | None = None
+    notes: str | None = None
+
+
+class RejectProposalRequest(BaseModel):
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class CorrectProposalRequest(BaseModel):
+    correction: str = Field(..., min_length=1, max_length=10000)
+    save_as_fact: bool = False
+    field_name: str | None = Field(default=None, min_length=1, max_length=150)
+    category: str = Field(default="general", max_length=100)
+    sensitivity: bool = False
+    consent_to_retrieve: bool = False
+    valid_until: datetime | None = None
+    notes: str | None = None
+
+
+class UserFeedbackRead(BaseModel):
+    id: str
+    proposal_id: str
+    feedback_type: str
+    correction: str | None
+    previous_answer: str | None
+    reason: str | None
+    approved_for_memory: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
