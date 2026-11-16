@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
+from pydantic import SecretStr, ValidationError
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -15,10 +16,12 @@ from backend.app.browser.session_manager import (
     BrowserSessionManager,
     _Control,
 )
-from backend.app.core.config import get_settings
+from backend.app.core.config import Settings, get_settings
+from backend.app.extension import auth as extension_auth
 from backend.app.core.database import Base, get_db
 from backend.app.main import app
 from backend.app.answers.models import AnswerProposalRecord
+from backend.app.profiles.models import ProfileFact
 
 
 class FakeBrowserSessionManager:
@@ -278,3 +281,130 @@ def test_local_test_form_is_read_only_for_automation(client: TestClient) -> None
     assert response.status_code == 200
     assert "¿En qué ciudad vives?" in response.text
     assert 'type="submit"' in response.text
+
+
+def _extension_headers(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    token = "test-extension-token-" + ("x" * 32)
+    monkeypatch.setattr(
+        extension_auth,
+        "get_settings",
+        lambda: SimpleNamespace(chrome_extension_api_token=SecretStr(token)),
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_extension_routes_require_token_and_minimize_profile_data(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    profile_response = client.post(
+        "/api/v1/profiles",
+        json={"name": "Real profile", "email": "private@example.test"},
+    )
+    profile_id = profile_response.json()["id"]
+    headers = _extension_headers(monkeypatch)
+
+    unauthorized = client.get("/api/v1/chrome-extension/profiles")
+    assert unauthorized.status_code == 401
+
+    profiles = client.get(
+        "/api/v1/chrome-extension/profiles",
+        headers=headers,
+    )
+    assert profiles.status_code == 200
+    assert profiles.json() == [{"id": profile_id, "name": "Real profile"}]
+    assert "private@example.test" not in profiles.text
+
+
+def test_extension_proposal_is_authenticated_and_audit_omits_question_text(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    profile_id = _create_profile(client)
+    headers = _extension_headers(monkeypatch)
+    payload = {
+        "profile_id": profile_id,
+        "origin": "https://survey.example",
+        "question_text": "What is your current occupation?",
+        "options": ["Teacher", "Engineer"],
+        "required": True,
+    }
+
+    invalid_origin = client.post(
+        "/api/v1/chrome-extension/proposals",
+        headers=headers,
+        json={**payload, "origin": "https://survey.example/path"},
+    )
+    assert invalid_origin.status_code == 422
+
+    proposal = client.post(
+        "/api/v1/chrome-extension/proposals",
+        headers=headers,
+        json=payload,
+    )
+    assert proposal.status_code == 200
+    assert proposal.json()["support_status"] == "insufficient"
+
+    event = client.post(
+        "/api/v1/chrome-extension/audit",
+        headers=headers,
+        json={
+            "profile_id": profile_id,
+            "origin": payload["origin"],
+            "action": "field_filled",
+            "control_type": "text",
+        },
+    )
+    assert event.status_code == 201
+    assert event.json()["action"] == "field_filled"
+    assert "What is your current occupation?" not in event.text
+
+
+def test_extension_approval_does_not_save_proposal_as_a_profile_fact(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    profile_id = _create_profile(client)
+    db_factory = client.app.state.test_session
+    with db_factory() as db:
+        proposal = AnswerProposalRecord(
+            profile_id=profile_id,
+            question_text="What is your occupation?",
+            answer_text="Architect",
+            support_status="supported",
+            confidence=0.9,
+            status="pending",
+            answer_format="text",
+            question_analysis={
+                "question_text": "What is your occupation?",
+                "question_type": "free_text",
+            },
+            needs_user_input=False,
+            needs_review=True,
+        )
+        db.add(proposal)
+        db.commit()
+        proposal_id = proposal.id
+
+    approved = client.post(
+        f"/api/v1/chrome-extension/proposals/{proposal_id}/approve",
+        headers=_extension_headers(monkeypatch),
+        json={"profile_id": profile_id, "origin": "https://survey.example"},
+    )
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "approved"
+    with db_factory() as db:
+        assert db.query(ProfileFact).filter(ProfileFact.profile_id == profile_id).count() == 0
+
+
+def test_cors_and_extension_token_configuration_are_strict() -> None:
+    with pytest.raises(ValidationError):
+        Settings(cors_allowed_origins="*")
+    with pytest.raises(ValidationError):
+        Settings(chrome_extension_api_token=SecretStr("short"))
+    settings = Settings(
+        cors_allowed_origins=f"http://localhost:4200,chrome-extension://{'a' * 32}",
+    )
+    assert settings.cors_allowed_origins == f"http://localhost:4200,chrome-extension://{'a' * 32}"
+    with pytest.raises(ValidationError):
+        Settings(cors_allowed_origins="http://user@localhost:4200")

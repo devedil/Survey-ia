@@ -5,13 +5,46 @@
   color: #172033;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 * {
   box-sizing: border-box;
+}
+
+button.secondary {
+  background: #46536b;
 }
 
 body {
   margin: 0;
   min-width: 280px;
+}
+
+.extension-origin {
+  overflow-wrap: anywhere;
+  color: #52617a;
+  font-size: 0.8rem;
+}
+
+.button-row {
+  display: grid;
+  gap: 8px;
+}
+
+.source-list {
+  padding-left: 20px;
+}
+
+.source-list li {
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+  font-size: 0.88rem;
+}
+
+.review-question {
+  font-weight: 600;
 }
 
 main {
@@ -64,6 +97,16 @@ label,
 }
 
 input {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #aeb9ca;
+  border-radius: 6px;
+  font: inherit;
+}
+
+select,
+textarea {
+  width: 100%;
   min-width: 0;
   padding: 9px;
   border: 1px solid #aeb9ca;

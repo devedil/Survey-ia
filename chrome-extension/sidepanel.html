@@ -10,18 +10,50 @@
   <body>
     <main>
       <header>
-        <p class="eyebrow">Integración Chrome · Solo lectura</p>
+        <p class="eyebrow">Integración Chrome · Revisión humana</p>
         <h1>AI Survey Assistant</h1>
         <p>
-          Esta primera versión solo muestra controles visibles de la pestaña activa.
-          No envía datos al backend, no rellena campos ni envía formularios.
+          Usa tu perfil real. Revisa cada propuesta y apruébala antes de rellenar.
+          La extensión nunca envía ni avanza formularios.
         </p>
       </header>
+
+      <section aria-labelledby="connection-heading">
+        <h2 id="connection-heading">Conexión local</h2>
+        <p class="hint">
+          Preguntas y propuestas se guardan en el historial local; la pregunta y el contexto
+          pertinente pueden enviarse al proveedor de IA configurado.
+        </p>
+        <p class="extension-origin">
+          Origen de la extensión: <code id="extension-origin"></code>
+        </p>
+        <form id="connection-form">
+          <label for="api-token">Token local de la extensión</label>
+          <input
+            id="api-token"
+            name="api-token"
+            type="password"
+            autocomplete="off"
+            required
+          >
+          <button type="submit">Conectar con el backend local</button>
+        </form>
+        <button id="disconnect-button" class="secondary" type="button" hidden>
+          Desconectar
+        </button>
+        <p id="connection-status" class="status" role="status" aria-live="polite">
+          Configura el token local para cargar perfiles.
+        </p>
+        <label for="profile-select">Perfil real</label>
+        <select id="profile-select" disabled>
+          <option value="">Conecta y selecciona tu perfil</option>
+        </select>
+      </section>
 
       <section aria-labelledby="origins-heading">
         <h2 id="origins-heading">Sitios autorizados</h2>
         <p class="hint">
-          Agrega el origen exacto solo si el sitio permite este tipo de asistencia.
+          Agrega el origen exacto solo si el sitio permite este uso asistido.
           Se requiere HTTPS, excepto para localhost.
         </p>
         <form id="origin-form">
@@ -40,12 +72,27 @@
       </section>
 
       <section aria-labelledby="scan-heading">
-        <h2 id="scan-heading">Pregunta actual</h2>
-        <button id="scan-button" type="button">Inspeccionar pestaña activa</button>
+        <h2 id="scan-heading">Formulario activo</h2>
+        <button id="scan-button" type="button" disabled>Inspeccionar pestaña activa</button>
         <p id="status" class="status" role="status" aria-live="polite">
-          La inspección solo se ejecuta cuando la solicitas.
+          Conecta el backend y selecciona tu perfil para empezar.
         </p>
         <ol id="control-list" class="control-list"></ol>
+      </section>
+
+      <section id="review-section" aria-labelledby="review-heading" hidden>
+        <h2 id="review-heading">Revisar respuesta</h2>
+        <p id="review-question" class="review-question"></p>
+        <p id="support-status" class="status"></p>
+        <ul id="source-list" class="source-list"></ul>
+        <label for="answer-draft">Respuesta propuesta</label>
+        <textarea id="answer-draft" rows="4" disabled></textarea>
+        <p id="review-reason" class="hint"></p>
+        <div class="button-row">
+          <button id="approve-button" type="button" disabled>Aprobar respuesta</button>
+          <button id="reject-button" class="secondary" type="button" disabled>Rechazar</button>
+          <button id="fill-button" type="button" disabled>Rellenar campo aprobado</button>
+        </div>
       </section>
     </main>
   </body>

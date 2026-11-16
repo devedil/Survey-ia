@@ -5,7 +5,7 @@ Aplicación local para asistir a formularios y encuestas con un flujo controlado
 ## Estado actual
 
 Se han completado las Fases 0 a 5 del plan maestro. La Fase 6 (integración
-con Chrome) acaba de comenzar:
+con Chrome) está en curso:
 
 - estructura del repositorio;
 - backend FastAPI con `/health`;
@@ -19,7 +19,7 @@ con Chrome) acaba de comenzar:
 - procedencia, sensibilidad, consentimiento, vigencia, historial/reversión, búsqueda, deduplicación, exportación y borrado de hechos;
 - sesiones Playwright restringidas al formulario local, inspección de controles y escritura verificada solo tras aprobación explícita;
 - registro persistente de acciones del navegador, con bloqueo de navegación externa, CAPTCHA y solicitudes no seguras;
-- prototipo de extensión Chrome Manifest V3 que, tras una acción explícita, inspecciona controles visibles en un origen exacto autorizado;
+- extensión Chrome Manifest V3 que inspecciona controles visibles, solicita propuestas al backend local y separa propuesta, aprobación y relleno;
 - frontend Angular base;
 - Docker Compose para PostgreSQL compatible con pgvector;
 - variables de entorno y documentación base.
@@ -42,10 +42,17 @@ docker compose up -d
 
 Copiar `.env.example` a `.env`. `BROWSER_ALLOWED_ORIGINS` solo configura el
 navegador Playwright de pruebas, que acepta el sitio local de prueba y no
-navega a otros dominios. La extensión Chrome es experimental: su primer
-incremento solo inspecciona controles visibles en el origen exacto que
-agregues manualmente; no se conecta al backend, no rellena campos ni envía
-formularios. Para usar documentos, configurar
+navega a otros dominios. Para conectar Chrome, genera un token local:
+
+```powershell
+.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Configura el valor generado en `CHROME_EXTENSION_API_TOKEN`. Tras cargar la
+extensión en Chrome, copia su ID desde `chrome://extensions` y agrega el
+origen exacto a `CORS_ALLOWED_ORIGINS`, por ejemplo:
+`http://localhost:4200,http://127.0.0.1:4200,chrome-extension://<ID>`.
+No uses `*`. Reinicia el backend tras modificar `.env`. Para usar documentos, configurar
 `OPENAI_API_KEY` y `OPENAI_EMBEDDING_MODEL`; para analizar/proponer respuestas,
 configurar además `OPENAI_DEFAULT_MODEL`. Los modelos de embeddings deben
 devolver vectores de 1536 dimensiones. La clave puede incorporarse después;
@@ -119,21 +126,26 @@ que el valor resultante coincida con el aprobado. CAPTCHA o intentos de salir
 del sitio permitido bloquean la sesión. Las acciones se guardan en la tabla
 `browser_audit_events`; no se guardan respuestas de campos en la auditoría.
 
-## Extensión Chrome (prototipo de solo lectura)
+## Extensión Chrome (Fase 6 en curso)
 
 1. Abre `chrome://extensions` en Chrome y activa **Modo de desarrollador**.
 2. Selecciona **Cargar descomprimida** y elige la carpeta `chrome-extension`.
-3. Abre solo una página cuyo uso asistido esté permitido.
-4. Abre la extensión desde la barra de herramientas, agrega el origen HTTPS
-   exacto y elige **Inspeccionar pestaña activa**.
+3. Configura la API local como se indica arriba y reinicia el backend.
+4. Abre la extensión, pega el token, conecta y selecciona tu perfil real.
+5. Agrega el origen HTTPS exacto solo si el sitio permite este uso asistido.
+6. Inspecciona la pestaña, pide una propuesta y confirma explícitamente
+   antes de enviar la pregunta/contexto a la aplicación local y al proveedor
+   de IA configurado.
+7. Revisa las fuentes, corrige si hace falta y aprueba. Rellenar el campo
+   es una acción separada; el envío sigue siendo manual.
 
-Este prototipo solicita únicamente `activeTab`, `scripting`, `sidePanel` y
-`storage`; no pide acceso a cookies ni permisos globales de sitios. La lista
-de orígenes se guarda localmente. La inspección se ejecuta bajo demanda y
-muestra controles nativos visibles; las preguntas todavía no se envían a la
-IA. La propuesta, aprobación y relleno desde Chrome se implementarán después
-de añadir autenticación segura para la API local. No uses la extensión en
-sitios que prohíban este tipo de asistencia.
+La extensión solicita únicamente `activeTab`, `scripting`, `sidePanel` y
+`storage`; no accede a cookies ni a permisos globales de host. El token se
+mantiene en almacenamiento de sesión de Chrome y se elimina al desconectar.
+Los registros de auditoría no contienen preguntas ni respuestas. La versión
+actual rellena campos de texto, radio y selección única; presenta otros
+controles pero no los rellena automáticamente. CAPTCHA, controles
+anti-bot, preguntas de elegibilidad o cambios en la página detienen el flujo.
 
 ## Seguridad
 

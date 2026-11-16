@@ -4,9 +4,8 @@ Este repositorio sigue la propuesta de la Fase 0 del plan maestro:
 
 - backend FastAPI para API local, validación y orquestación de workflows.
 - frontend Angular para panel local y revisión humana.
-- extensión Chrome Manifest V3 para asistir en la pestaña activa; el
-  prototipo actual solo inspecciona controles visibles tras acción del
-  usuario y no se conecta al backend.
+- extensión Chrome Manifest V3 para asistir en la pestaña activa, conectada
+  al backend local mediante token Bearer, CORS exacto y revisión humana.
 - PostgreSQL con pgvector para almacenamiento estructurado y vectorial.
 - Docker Compose para levantar la infraestructura y mantener entornos reproducibles.
 
@@ -62,5 +61,8 @@ docker-compose.yml
 - El navegador inspecciona etiquetas, opciones y atributos de campos, pero no lee valores ya introducidos; `fill-approved` solo usa propuestas persistidas y aprobadas y verifica el valor tras rellenar. Nunca activa controles de envío.
 - `browser_audit_events` conserva acciones y estado sin almacenar valores de formularios.
 - La extensión Chrome usa permisos `activeTab`, `scripting`, `sidePanel` y `storage`, sin permisos globales de host ni lectura de cookies. El permiso de pestaña se usa tras una acción explícita; la lista de orígenes es exacta y local.
-- El primer incremento de la extensión solo muestra controles visibles de formularios y no persiste ni transmite preguntas/respuestas. La integración con perfiles e IA está bloqueada hasta implementar emparejamiento/autenticación local y CORS de origen exacto.
+- Las rutas `/api/v1/chrome-extension/*` requieren un token Bearer local de al menos 32 caracteres. `CORS_ALLOWED_ORIGINS` valida orígenes exactos loopback y el ID exacto de la extensión; no admite comodines. El token vive en `chrome.storage.session`, no se envía al proveedor de IA ni se guarda en Git.
+- Antes de pedir una propuesta, la extensión informa que pregunta/contexto quedarán en el historial local y pueden enviarse al proveedor configurado; requiere confirmación. El historial persiste la propuesta para permitir revisión/aprobación.
+- `chrome_extension_audit_events` registra perfil, origen, acción y tipo de control; no guarda texto de pregunta, respuesta, URL completa ni valores del formulario.
+- El relleno está separado de la aprobación, revalida el mismo tab/origen/URL y una firma del control, y solo soporta texto, radio y selección única. No envía ni avanza formularios.
 - Playwright continúa limitado a pruebas locales; no se conecta al perfil autenticado de Chrome.

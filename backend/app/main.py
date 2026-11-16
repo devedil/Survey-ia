@@ -8,6 +8,7 @@ from backend.app.browser.router import router as browser_router
 from backend.app.browser.session_manager import BrowserSessionManager
 from backend.app.core.config import get_settings
 from backend.app.documents.router import router as documents_router
+from backend.app.extension.router import router as chrome_extension_router
 from backend.app.answers.router import router as answers_router
 from backend.app.memory.router import router as memory_router
 from backend.app.questions.router import router as questions_router
@@ -35,10 +36,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200", "http://127.0.0.1:4200"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[origin for origin in settings.cors_allowed_origins.split(",")],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+    max_age=600,
 )
 
 app.include_router(profiles_router, prefix="/api/v1")
@@ -47,6 +49,7 @@ app.include_router(questions_router, prefix="/api/v1")
 app.include_router(answers_router, prefix="/api/v1")
 app.include_router(memory_router, prefix="/api/v1")
 app.include_router(browser_router, prefix="/api/v1")
+app.include_router(chrome_extension_router, prefix="/api/v1")
 
 
 @app.get("/health")
