@@ -6,6 +6,7 @@ from typing import Protocol, Sequence
 
 from sqlalchemy.orm import Session
 
+from backend.app.ai.call_budget import ModelCallBudget
 from backend.app.core.config import get_settings
 from backend.app.documents.chunker import split_into_chunks
 from backend.app.documents.embedding_service import EmbeddingConfigurationError
@@ -24,7 +25,15 @@ from backend.app.profiles.models import Profile
 
 
 class Embedder(Protocol):
-    def embed_texts(self, texts: Sequence[str]) -> list[list[float]]: ...
+    def embed_texts(
+        self,
+        texts: Sequence[str],
+        *,
+        db: Session | None = None,
+        profile_id: str | None = None,
+        operation: str = "embedding",
+        call_budget: ModelCallBudget | None = None,
+    ) -> list[list[float]]: ...
 
 
 class DocumentServiceError(RuntimeError):
@@ -75,7 +84,12 @@ def _index(
         )
         if not chunks:
             raise DocumentProcessingError("No searchable text was produced")
-        vectors = embedder.embed_texts(chunks)
+        vectors = embedder.embed_texts(
+            chunks,
+            db=db,
+            profile_id=document.profile_id,
+            operation="document_indexing",
+        )
         if len(vectors) != len(chunks):
             raise DocumentServiceError("Embedding provider returned an unexpected number of vectors")
         if any(len(vector) != VECTOR_DIMENSIONS for vector in vectors):
@@ -179,7 +193,12 @@ def search_documents(
     limit: int,
     embedder: Embedder,
 ) -> list[tuple[DocumentChunk, Document, float]]:
-    query_vector = embedder.embed_texts([query])
+    query_vector = embedder.embed_texts(
+        [query],
+        db=db,
+        profile_id=profile_id,
+        operation="document_search",
+    )
     if len(query_vector) != 1:
         raise DocumentServiceError("Embedding provider returned an unexpected number of vectors")
     if len(query_vector[0]) != VECTOR_DIMENSIONS:

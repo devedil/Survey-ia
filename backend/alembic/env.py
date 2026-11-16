@@ -7,6 +7,7 @@ from backend.app.core.config import get_settings
 from backend.app.core.database import Base
 from backend.app.documents.models import Document, DocumentChunk
 from backend.app.profiles.models import Profile, ProfileFact
+from backend.app.usage.models import ModelUsage
 
 settings = get_settings()
 

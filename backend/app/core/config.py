@@ -11,7 +11,13 @@ class Settings(BaseSettings):
     app_port: int = 8000
     database_url: str = "postgresql+psycopg://app_user:app_password@localhost:5432/ai_survey_assistant"
     openai_api_key: str = "replace_me"
+    openai_default_model: str = ""
     openai_embedding_model: str = ""
+    openai_pricing_catalog: str = "{}"
+    max_input_tokens_per_call: int = Field(default=8000, ge=1)
+    max_output_tokens_per_call: int = Field(default=1000, ge=1)
+    max_retries_per_question: int = Field(default=1, ge=0, le=3)
+    max_calls_per_question: int = Field(default=3, ge=1, le=5)
     document_storage_path: str = "./storage/documents"
     max_upload_mb: int = Field(default=20, ge=1)
     document_chunk_size: int = Field(default=1000, ge=1)

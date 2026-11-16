@@ -23,7 +23,7 @@ from backend.app.main import app
 
 
 class FakeEmbeddingService:
-    def embed_texts(self, texts):
+    def embed_texts(self, texts, **kwargs):
         return [[1.0] + [0.0] * 1535 for _ in texts]
 
 
@@ -152,7 +152,7 @@ def test_upload_search_and_delete_documents(client: TestClient, monkeypatch):
 
 def test_embedding_configuration_failure_is_reported_and_saved(client: TestClient):
     class UnconfiguredEmbeddingService:
-        def embed_texts(self, texts):
+        def embed_texts(self, texts, **kwargs):
             raise EmbeddingConfigurationError("Embedding provider is not configured")
 
     profile_id = client.post("/api/v1/profiles", json={"name": "Test profile"}).json()["id"]
