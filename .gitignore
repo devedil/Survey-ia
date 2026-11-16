@@ -19,6 +19,7 @@ frontend/.vscode/
 
 # Docker
 *.log
+storage/
 
 # OS
 .DS_Store

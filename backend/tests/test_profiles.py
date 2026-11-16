@@ -1,18 +1,38 @@
-import os
-from pathlib import Path
-
-os.environ["DATABASE_URL"] = "sqlite:///" + str(Path(__file__).resolve().parents[1] / "test_ai_survey_assistant.db")
-
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from backend.app.core.database import Base, engine
+from backend.app.core.database import Base, get_db
 from backend.app.main import app
 
-Base.metadata.create_all(bind=engine)
-client = TestClient(app)
+
+@pytest.fixture()
+def client():
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    test_session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    def override_get_db():
+        db = test_session()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
+    engine.dispose()
 
 
-def test_profile_and_fact_crud_flow() -> None:
+def test_profile_and_fact_crud_flow(client: TestClient) -> None:
     response = client.post("/api/v1/profiles", json={"name": "Ana", "email": "ana@example.com"})
     assert response.status_code == 201
     profile = response.json()
