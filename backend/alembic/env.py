@@ -5,6 +5,7 @@ from sqlalchemy import engine_from_config, pool
 
 from backend.app.core.config import get_settings
 from backend.app.core.database import Base
+from backend.app.browser.models import BrowserAuditEvent
 from backend.app.answers.models import AnswerProposalRecord, AnswerSourceRecord, UserFeedback
 from backend.app.documents.models import Document, DocumentChunk
 from backend.app.profiles.models import Profile, ProfileFact, ProfileFactRevision

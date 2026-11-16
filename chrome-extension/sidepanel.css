@@ -1,0 +1,143 @@
+:root {
+  color-scheme: light;
+  font-family: "Segoe UI", sans-serif;
+  background: #f4f6fb;
+  color: #172033;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 280px;
+}
+
+main {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+header,
+section {
+  padding: 16px;
+  border: 1px solid #dfe4ee;
+  border-radius: 12px;
+  background: #fff;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 8px;
+  font-size: 1.35rem;
+}
+
+h2 {
+  font-size: 1rem;
+}
+
+p {
+  line-height: 1.45;
+}
+
+.eyebrow,
+.hint {
+  color: #52617a;
+  font-size: 0.85rem;
+}
+
+form {
+  display: grid;
+  gap: 8px;
+}
+
+label,
+.control-question {
+  font-weight: 600;
+}
+
+input {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #aeb9ca;
+  border-radius: 6px;
+  font: inherit;
+}
+
+button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: #2548a8;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #79a4ff;
+  outline-offset: 2px;
+}
+
+.origin-list,
+.control-list {
+  display: grid;
+  gap: 10px;
+  padding-left: 20px;
+}
+
+.origin-list {
+  margin-bottom: 0;
+}
+
+.origin-entry {
+  overflow-wrap: anywhere;
+}
+
+.origin-entry button {
+  min-height: 30px;
+  margin: 6px 0 0;
+  padding: 5px 8px;
+  background: #5b2631;
+  font-size: 0.85rem;
+}
+
+.control-item {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e6eaf1;
+}
+
+.control-question {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.control-meta,
+.control-options {
+  color: #52617a;
+  font-size: 0.88rem;
+}
+
+.status {
+  margin-bottom: 0;
+  color: #33486d;
+}
+
+.status[data-state="error"] {
+  color: #a32132;
+}

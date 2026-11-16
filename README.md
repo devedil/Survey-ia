@@ -4,7 +4,8 @@ Aplicación local para asistir a formularios y encuestas con un flujo controlado
 
 ## Estado actual
 
-Se han completado las Fases 0 a 4 del plan maestro:
+Se han completado las Fases 0 a 5 del plan maestro. La Fase 6 (integración
+con Chrome) acaba de comenzar:
 
 - estructura del repositorio;
 - backend FastAPI con `/health`;
@@ -16,6 +17,9 @@ Se han completado las Fases 0 a 4 del plan maestro:
 - registro de tokens, duración, estado y costo según catálogo de precios configurado;
 - historial de propuestas, aprobación/rechazo/corrección y memoria reutilizable solo con aprobación explícita;
 - procedencia, sensibilidad, consentimiento, vigencia, historial/reversión, búsqueda, deduplicación, exportación y borrado de hechos;
+- sesiones Playwright restringidas al formulario local, inspección de controles y escritura verificada solo tras aprobación explícita;
+- registro persistente de acciones del navegador, con bloqueo de navegación externa, CAPTCHA y solicitudes no seguras;
+- prototipo de extensión Chrome Manifest V3 que, tras una acción explícita, inspecciona controles visibles en un origen exacto autorizado;
 - frontend Angular base;
 - Docker Compose para PostgreSQL compatible con pgvector;
 - variables de entorno y documentación base.
@@ -36,7 +40,12 @@ docker compose up -d
 
 ### 2) Configuración
 
-Copiar `.env.example` a `.env`. Para usar documentos, configurar
+Copiar `.env.example` a `.env`. `BROWSER_ALLOWED_ORIGINS` solo configura el
+navegador Playwright de pruebas, que acepta el sitio local de prueba y no
+navega a otros dominios. La extensión Chrome es experimental: su primer
+incremento solo inspecciona controles visibles en el origen exacto que
+agregues manualmente; no se conecta al backend, no rellena campos ni envía
+formularios. Para usar documentos, configurar
 `OPENAI_API_KEY` y `OPENAI_EMBEDDING_MODEL`; para analizar/proponer respuestas,
 configurar además `OPENAI_DEFAULT_MODEL`. Los modelos de embeddings deben
 devolver vectores de 1536 dimensiones. La clave puede incorporarse después;
@@ -80,6 +89,10 @@ npm start -- --host 0.0.0.0
 - `GET /api/v1/answers/{proposal_id}/history`
 - `GET|POST|DELETE /api/v1/memory`
 - `GET /api/v1/memory/export?profile_id=<uuid>` y `GET /api/v1/memory/duplicates?profile_id=<uuid>`
+- `GET /api/v1/browser/test-site` (formulario de prueba local)
+- `POST /api/v1/browser/sessions` y `GET /api/v1/browser/sessions/{session_id}`
+- `POST /api/v1/browser/sessions/{session_id}/navigate|inspect|propose|fill-approved|stop`
+- `GET /api/v1/browser/audit/events`
 
 Los formatos admitidos son PDF con texto, DOCX, TXT, MD y XLSX. XLSX se lee
 en modo de solo lectura y sin evaluar fórmulas ni macros. El contenido del
@@ -94,6 +107,33 @@ por sí solas. Para incorporar un hecho hace falta aprobarlo con
 sensibles, sin consentimiento o vencidos. Los hechos pueden editarse,
 consultarse, exportarse y eliminarse. Las llamadas a OpenAI y la memoria
 requieren la migración vigente (`alembic upgrade head`).
+
+Playwright abre Chromium en modo headless. Después de instalar las dependencias,
+instala el navegador requerido con
+`.\.venv\Scripts\python.exe -m playwright install chromium`.
+La API solo permite navegar al formulario local de prueba, detecta controles
+de formulario sin leer sus valores actuales y nunca pulsa botones ni envía el
+formulario. `fill-approved` no acepta texto del cliente: exige una propuesta
+respaldada, aprobada y correspondiente a la pregunta inspeccionada, y verifica
+que el valor resultante coincida con el aprobado. CAPTCHA o intentos de salir
+del sitio permitido bloquean la sesión. Las acciones se guardan en la tabla
+`browser_audit_events`; no se guardan respuestas de campos en la auditoría.
+
+## Extensión Chrome (prototipo de solo lectura)
+
+1. Abre `chrome://extensions` en Chrome y activa **Modo de desarrollador**.
+2. Selecciona **Cargar descomprimida** y elige la carpeta `chrome-extension`.
+3. Abre solo una página cuyo uso asistido esté permitido.
+4. Abre la extensión desde la barra de herramientas, agrega el origen HTTPS
+   exacto y elige **Inspeccionar pestaña activa**.
+
+Este prototipo solicita únicamente `activeTab`, `scripting`, `sidePanel` y
+`storage`; no pide acceso a cookies ni permisos globales de sitios. La lista
+de orígenes se guarda localmente. La inspección se ejecuta bajo demanda y
+muestra controles nativos visibles; las preguntas todavía no se envían a la
+IA. La propuesta, aprobación y relleno desde Chrome se implementarán después
+de añadir autenticación segura para la API local. No uses la extensión en
+sitios que prohíban este tipo de asistencia.
 
 ## Seguridad
 

@@ -1,16 +1,156 @@
 <main>
- <section class=panel>
- <p class=eyebrow>Fase 0</p>
- <h1>{{ title() }}</h1>
- <p>
- Entorno base inicial preparado para la aplicaci�n local: backend FastAPI,
- frontend Angular y PostgreSQL con pgvector.
- </p>
- <div class=badges>
- <span class=badge>FastAPI</span>
- <span class=badge>Angular</span>
- <span class=badge>PostgreSQL + pgvector</span>
- <span class=badge>Control humano</span>
- </div>
- </section>
+  <section class="panel">
+    <p class="eyebrow">Fase 5 · Navegador controlado</p>
+    <h1>{{ title() }}</h1>
+    <p class="intro">
+      Inspecciona el formulario local de prueba. Revisa y aprueba cada propuesta antes de rellenar.
+      La aplicación nunca pulsa «Enviar».
+    </p>
+
+    <section class="step">
+      <h2>1. Perfil</h2>
+      <label for="profile">Perfil existente</label>
+      <select
+        id="profile"
+        [ngModel]="profileId()"
+        (ngModelChange)="profileId.set($event)"
+        [disabled]="busy() || session()?.status === 'active'"
+      >
+        <option value="">Selecciona un perfil</option>
+        @for (profile of profiles(); track profile.id) {
+          <option [value]="profile.id">{{ profile.name }}</option>
+        }
+      </select>
+
+      <details>
+        <summary>Crear perfil de prueba</summary>
+        <div class="inline-form">
+          <label for="profile-name">Nombre</label>
+          <input
+            id="profile-name"
+            [ngModel]="profileName()"
+            (ngModelChange)="profileName.set($event)"
+            maxlength="255"
+          >
+          <button
+            type="button"
+            class="secondary"
+            (click)="createProfile()"
+            [disabled]="busy() || !profileName().trim()"
+          >
+            Crear perfil
+          </button>
+        </div>
+      </details>
+
+      <button type="button" (click)="startSession()" [disabled]="busy() || !profileId() || session()?.status === 'active'">
+        Iniciar navegador de prueba
+      </button>
+    </section>
+
+    @if (session(); as browserSession) {
+      <section class="step">
+        <div class="section-heading">
+          <h2>2. Formulario</h2>
+          <span class="status" [class.blocked]="browserSession.status !== 'active'">
+            {{ browserSession.status }}
+          </span>
+        </div>
+        <p class="muted">Solo se abre el formulario local autorizado; no se envía.</p>
+        @if (browserSession.status === 'active') {
+          <button type="button" class="secondary" (click)="inspectPage()" [disabled]="busy()">
+            Inspeccionar de nuevo
+          </button>
+          <button type="button" class="danger" (click)="stopSession()" [disabled]="busy()">
+            Detener sesión
+          </button>
+        }
+
+        @if (controls().length) {
+          <ul class="control-list">
+            @for (control of controls(); track control.control_id) {
+              <li>
+                <div>
+                  <strong>{{ control.question_text || 'Campo sin etiqueta' }}</strong>
+                  @if (control.options.length) {
+                    <small>Opciones: {{ control.options.join(', ') }}</small>
+                  } @else {
+                    <small>Control: {{ control.control_type }}</small>
+                  }
+                </div>
+                <button
+                  type="button"
+                  class="secondary"
+                  (click)="propose(control)"
+                  [disabled]="busy() || browserSession.status !== 'active' || !control.question_text"
+                >
+                  Proponer
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+
+    @if (selectedControl(); as control) {
+      @if (proposal(); as suggestion) {
+        <section class="step review">
+          <h2>3. Revisión humana</h2>
+          <p class="question">{{ control.question_text }}</p>
+          <p>
+            Respaldo: <strong>{{ suggestion.support_status }}</strong>
+            · Confianza: {{ suggestion.confidence | percent:'1.0-0' }}
+          </p>
+          @if (suggestion.sources.length) {
+            <ul class="sources">
+              @for (source of suggestion.sources; track source.source_id) {
+                <li>{{ source.source_type }} · {{ source.excerpt }}</li>
+              }
+            </ul>
+          }
+          <label for="answer">Respuesta propuesta (puedes corregirla antes de aprobar)</label>
+          <textarea
+            id="answer"
+            rows="3"
+            [ngModel]="answerDraft()"
+            (ngModelChange)="answerDraft.set($event)"
+            [disabled]="busy() || suggestion.status === 'approved'"
+          ></textarea>
+
+          @if (suggestion.status !== 'approved') {
+            <button
+              type="button"
+              (click)="approveProposal()"
+              [disabled]="busy() || suggestion.support_status !== 'supported' || !answerDraft().trim()"
+            >
+              Aprobar respuesta
+            </button>
+            @if (suggestion.support_status !== 'supported') {
+              <p class="muted">No hay evidencia suficiente para aprobar esta propuesta.</p>
+            }
+          } @else {
+            <p class="approved">Aprobada explícitamente. Todavía no se ha rellenado ni enviado.</p>
+            <button type="button" (click)="fillApproved()" [disabled]="busy()">
+              Rellenar campo aprobado
+            </button>
+          }
+        </section>
+      }
+    }
+
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    @if (message()) {
+      <p class="message" role="status">{{ message() }}</p>
+    }
+
+    <div class="badges">
+      <span class="badge">Playwright</span>
+      <span class="badge">Solo localhost</span>
+      <span class="badge">Aprobación humana</span>
+      <span class="badge">Sin envío automático</span>
+    </div>
+  </section>
 </main>

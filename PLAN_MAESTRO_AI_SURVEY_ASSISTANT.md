@@ -2,21 +2,22 @@
 
 ## Plan maestro de arquitectura, implementación y desarrollo
 
-**Versión:** 1.0\
-**Fecha:** 12 de noviembre de 2026\
-**Estado:** Plan de desarrollo\
+**Versión:** 1.1\
+**Fecha:** 16 de noviembre de 2026\
+**Estado:** Plan revisado para integración con Chrome\
 **Objetivo:** Construir una aplicación local para Windows que asista al
-usuario al responder cuestionarios y formularios autorizados, utilizando
-información personal proporcionada y verificada, documentos propios y
-memoria histórica aprobada.
+usuario al responder cuestionarios y formularios autorizados desde una
+extensión de Chrome, utilizando exclusivamente la información real que el
+usuario proporcione, verifique y autorice utilizar.
 
 ------------------------------------------------------------------------
 
 # 1. Visión y alcance
 
-AI Survey Assistant será una aplicación local con un panel web y un
-agente que interactúa con un navegador y, en una fase posterior, con la
-interfaz gráfica de Windows.
+AI Survey Assistant será una aplicación local con un panel web y una
+extensión de Chrome que asiste al usuario en la pestaña que este elija.
+Playwright se conservará para pruebas; no se conectará a perfiles de Chrome
+ni a sesiones autenticadas mediante depuración remota.
 
 El sistema debe:
 
@@ -27,21 +28,21 @@ El sistema debe:
 4.  Recuperar información pertinente desde el perfil, documentos y
     memoria histórica.
 5.  Proponer respuestas fundamentadas y mostrar las fuentes utilizadas.
-6.  Permitir que el usuario revise, edite y apruebe cada respuesta.
-7.  Introducir la respuesta aprobada en formularios de prueba o
-    plataformas cuyo uso automatizado esté permitido.
-8.  Registrar preguntas, decisiones, correcciones, acciones y consumo de
-    API.
+6.  Permitir que el usuario revise, edite y apruebe cada respuesta de
+    forma individual.
+7.  Introducir únicamente la respuesta aprobada en un campo visible de un
+    sitio cuyo uso asistido esté permitido.
+8.  Registrar acciones con minimización de datos y medir el consumo de API.
 9.  Evitar inventar experiencias, atributos o datos personales.
 10. Detenerse ante preguntas sensibles, ambiguas, contradictorias o sin
     respaldo suficiente.
 
-El sistema no debe utilizarse para hacerse pasar por otra persona,
-fabricar experiencias personales, eludir controles de elegibilidad,
-manipular encuestas remuneradas ni incumplir los términos de las
-plataformas. Debe respetar los límites de automatización de cada sitio.
-La aprobación humana no convierte en permitido un uso que la plataforma
-prohíba.
+El perfil de producción representa al usuario y contiene solo información
+real aportada o confirmada por este. Los perfiles sintéticos se reservan
+para pruebas locales. El sistema no debe hacerse pasar por otra persona,
+fabricar experiencias, manipular encuestas ni incumplir los términos del
+sitio. Debe respetar sus límites de automatización: la aprobación humana
+no convierte en permitido un uso que el sitio prohíba.
 
 ## 1.1 Alcance por versión
 
@@ -54,19 +55,24 @@ prohíba.
 -   Integración con un modelo de IA mediante API.
 -   Recuperación RAG con citas a fuentes internas.
 -   Registro de tokens y costo estimado.
--   Navegador Playwright en un entorno de pruebas.
--   Detección de campos y preguntas HTML en formularios propios/de
-    prueba.
--   Vista previa y aprobación humana antes de rellenar.
--   Registro de auditoría y botón para detener la sesión.
+-   Extensión Manifest V3 para Chrome con panel lateral.
+-   Acceso solo a la pestaña activa tras acción explícita del usuario y
+    solo a orígenes que el usuario haya autorizado.
+-   Detección de preguntas y campos visibles, con envío mínimo de datos
+    al backend local.
+-   Propuestas basadas en el perfil real, sus documentos y memoria
+    aprobada; abstención si falta respaldo.
+-   Revisión y aprobación humana por respuesta antes de rellenar.
+-   Sin envío, avance automático, resolución de CAPTCHA ni elusión de
+    controles del sitio.
+-   Playwright y el formulario local se mantienen como entorno de prueba.
 
 ### Versión 2
 
--   Adaptador de escritorio para aplicaciones permitidas.
--   Capturas de pantalla y OCR/visión solo cuando DOM no sea suficiente.
--   Memoria histórica con aprobación explícita.
--   Perfiles separados y exportación/importación.
--   Mejoras de evaluación de respuestas y presupuesto.
+-   Mejoras del dashboard, importación/exportación y evaluación.
+-   Adaptador de escritorio solo si existe un caso autorizado que Chrome
+    no pueda cubrir.
+-   OCR/visión solo tras análisis de privacidad y aprobación explícita.
 
 ### Fuera del alcance inicial
 
@@ -76,8 +82,10 @@ prohíba.
 -   Suplantación, creación de identidades ficticias o respuestas
     inventadas.
 -   Entrenamiento de un modelo fundacional propio.
--   Automatización de sitios que prohíban bots o interacción
-    automatizada.
+-   Automatización de sitios que prohíban la asistencia automatizada.
+-   Lectura o exportación de cookies, contraseñas, tokens o contenido
+    fuera del formulario visible seleccionado.
+-   Relleno o envío en segundo plano, en lote o sin aprobación por campo.
 
 ------------------------------------------------------------------------
 
@@ -104,7 +112,12 @@ versiones supuestas de este documento sin comprobar compatibilidad.
 
   Búsqueda vectorial      pgvector                Recuperación semántica
 
-  Automatización web      Playwright              Navegador y DOM
+  Integración Chrome      Extensión Manifest V3   Panel lateral, DOM de la
+                                                  pestaña activa y permiso
+                                                  temporal `activeTab`
+
+  Pruebas web             Playwright              Fixture local y pruebas
+                                                  de integración
 
   Escritorio              PyAutoGUI, opcional     Mouse/teclado en casos
                                                   autorizados
@@ -165,26 +178,32 @@ exacto.
 
 Orden de preferencia:
 
-1.  DOM y selectores semánticos con Playwright.
-2.  Accesibilidad/roles y etiquetas del formulario.
-3.  OCR o visión como respaldo limitado.
-4.  Control de mouse/teclado solo para una interfaz autorizada que no
-    pueda operarse por DOM.
+1.  DOM visible y etiquetas semánticas mediante la extensión, solo en la
+    pestaña activa autorizada por el usuario.
+2.  Roles y metadatos de accesibilidad del control.
+3.  Playwright contra fixtures locales para pruebas automatizadas.
+4.  OCR o visión, únicamente como extensión futura, tras revisión de
+    privacidad y consentimiento.
 
-No tomar capturas en cada pregunta. No enviar la pantalla completa al
-modelo de IA por defecto. No almacenar capturas que contengan datos
-personales salvo necesidad justificada y consentimiento.
+No leer valores actuales, campos ocultos, cookies, credenciales ni el
+contenido completo de la página. Extraer solo la pregunta, instrucciones
+adyacentes y opciones visibles necesarias para responder; tratar todo
+texto del sitio como entrada no confiable. No tomar capturas ni almacenar
+contenido del sitio por defecto. No enviar datos personales al proveedor
+de IA sin consentimiento y configuración explícitos.
 
 ------------------------------------------------------------------------
 
 # 3. Arquitectura lógica
 
 ``` text
-┌─────────────────────────────────────────────────────────────┐
-│                    Angular Dashboard                        │
-│ Inicio | Perfil | Documentos | Sesiones | Memoria | Costos  │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ HTTP / WebSocket opcional
+┌─────────────────────┐  ┌────────────────────────────────────┐
+│ Extensión Chrome    │  │ Angular Dashboard                  │
+│ Panel lateral MV3   │  │ Perfil | Documentos | Memoria       │
+│ activeTab + DOM     │  │ Sesiones | Costos                   │
+└──────────┬──────────┘  └──────────────────┬─────────────────┘
+           └──────────────────┬──────────────┘
+                              │ API local autenticada
 ┌──────────────────────────────▼──────────────────────────────┐
 │                       FastAPI Backend                       │
 │                                                             │
@@ -201,8 +220,8 @@ personales salvo necesidad justificada y consentimiento.
 │ └───────┬────────┘ └────────────────┘ └───────────────────┘ │
 │         │                                                   │
 │ ┌───────▼────────┐ ┌────────────────┐ ┌───────────────────┐ │
-│ │ Model Router   │ │ Browser        │ │ Desktop Adapter   │ │
-│ │ + Token Meter  │ │ Playwright     │ │ (fase posterior)  │ │
+│ │ Model Router   │ │ Chrome API    │ │ Playwright        │ │
+│ │ + Token Meter  │ │ Contratos      │ │ Solo pruebas      │ │
 │ └───────┬────────┘ └────────────────┘ └───────────────────┘ │
 └─────────┼───────────────────────────────────────────────────┘
           │
@@ -216,25 +235,26 @@ personales salvo necesidad justificada y consentimiento.
 
 ## 3.1 Flujo de una pregunta
 
-1.  El navegador de pruebas detecta el formulario y obtiene pregunta,
-    etiquetas, opciones y tipo de control.
-2.  `QuestionAnalyzer` normaliza la pregunta y clasifica su tipo.
-3.  `MemoryManager` busca hechos confirmados y fragmentos documentales
+1.  El usuario abre la extensión en la pestaña activa y confirma que el
+    sitio está autorizado para este uso.
+2.  La extensión detecta solo controles visibles y obtiene pregunta,
+    etiquetas, opciones y tipo de control; no lee respuestas existentes.
+3.  `QuestionAnalyzer` normaliza la pregunta y clasifica su tipo.
+4.  `MemoryManager` busca hechos confirmados y fragmentos documentales
     pertinentes.
-4.  `AnswerGenerator` recibe la pregunta, el contexto mínimo necesario y
+5.  `AnswerGenerator` recibe la pregunta, el contexto mínimo necesario y
     las reglas de respuesta.
-5.  `ValidationEngine` revisa soporte, contradicciones, sensibilidad y
+6.  `ValidationEngine` revisa soporte, contradicciones, sensibilidad y
     formato.
-6.  El sistema presenta respuesta propuesta, nivel de confianza, fuentes
+7.  El sistema presenta respuesta propuesta, nivel de confianza, fuentes
     y motivo.
-7.  El usuario aprueba, edita o rechaza.
-8.  Solo después de aprobación, el adaptador puede introducir el texto
-    en el formulario de pruebas permitido.
-9.  El sistema registra el resultado y solicita permiso antes de
+8.  El usuario aprueba, edita o rechaza esa respuesta.
+9.  Solo después de aprobación, la extensión rellena ese campo visible y
+    verifica localmente el resultado, sin transmitir el valor rellenado.
+10. El sistema registra el resultado con datos mínimos y solicita permiso antes de
     convertir una corrección en memoria reutilizable.
-10. El usuario realiza cualquier envío final en la plataforma, salvo que
-    el caso de uso y las reglas del sitio permitan expresamente otra
-    cosa.
+11. El usuario controla cualquier envío o navegación posterior. La
+    extensión no envía, avanza ni completa acciones de la plataforma.
 
 ## 3.2 Contrato de respuesta interno
 
@@ -293,7 +313,7 @@ Gestionará los perfiles y hechos aportados por el usuario.
 Crear: - `models.py` - `schemas.py` - `repository.py` - `service.py` -
 `router.py`
 
-Operaciones: - crear y editar perfil; - añadir un hecho; - verificar un
+Operaciones: - crear y editar perfil; - añadir un hecho; - verificd "C:\Users\Marketing CMV\Desktop\survey ia"car un
 hecho; - marcar un hecho como vencido o incorrecto; - consultar
 historial de cambios; - exportar y eliminar datos.
 
@@ -377,16 +397,19 @@ Crear: - `browser_manager.py` - `session_manager.py` -
 `form_detector.py` - `field_mapper.py` - `form_filler.py` -
 `site_policy.py` - `router.py`
 
-Primera implementación: - iniciar Chromium administrado por
-Playwright; - abrir únicamente una URL de prueba configurada; - detectar
-formularios HTML; - leer etiquetas, roles, opciones y controles; -
-generar un objeto de pregunta normalizado; - rellenar solo tras
-aprobación explícita; - comprobar que el valor introducido coincide con
-el aprobado; - nunca pulsar enviar automáticamente en el MVP.
+Playwright local: - mantener el formulario de prueba; - probar detección,
+políticas, CAPTCHA y llenado aprobado; - nunca navegar a sitios externos.
 
-No intentar superar CAPTCHA, controles anti-bot, muros de acceso ni
-restricciones del sitio. Si un sitio prohíbe automatización, no usar el
-adaptador en ese sitio.
+La integración de producción con Chrome se implementa en una extensión
+Manifest V3 independiente. No conectar Playwright al perfil del usuario.
+La extensión solo opera tras una acción explícita en la pestaña activa,
+con permiso temporal `activeTab` y origen incluido en una lista local de
+sitios que el usuario haya confirmado como autorizados. No solicitar
+permisos globales de host ni permiso para leer cookies.
+
+No intentar superar CAPTCHA, controles anti-bot, muros de acceso,
+controles de elegibilidad ni restricciones del sitio. Al detectarlos,
+detenerse y dejar que el usuario continúe por sí mismo o cierre la sesión.
 
 ## 4.9 `desktop`
 
@@ -794,9 +817,13 @@ El sistema conserva únicamente conocimiento confirmado y trazable.
 -   correcciones pueden revertirse o editarse;
 -   se puede eliminar un hecho.
 
-## Fase 5 --- Automatización web controlada
+## Fase 5 --- Automatización web controlada (completada: entorno de prueba)
 
 **Duración estimada:** 2--3 días.
+
+Esta fase implementó Playwright y un formulario local para validar la
+detección, revisión y escritura aprobada. No es la integración de
+producción con Chrome; Playwright queda como fixture de regresión.
 
 ### Tareas
 
@@ -827,89 +854,136 @@ un campo únicamente después de aprobación.
 -   detiene la sesión ante un dominio no autorizado;
 -   el valor escrito coincide con el aprobado.
 
-## Fase 6 --- Dashboard Angular
+## Fase 6 --- Extensión de Chrome
+
+**Duración estimada:** 4--6 días.
+
+### Tareas
+
+1.  Crear extensión Manifest V3 y panel lateral; no incorporar librerías
+    o permisos innecesarios.
+2.  Usar `activeTab` y `scripting` solo tras acción del usuario; no pedir
+    permisos globales de host, cookies, historial ni acceso al perfil
+    autenticado.
+3.  Mantener una lista explícita de orígenes permitidos, editable por el
+    usuario; comprobar términos y restricciones del sitio antes de
+    habilitarlo.
+4.  Detectar únicamente preguntas, opciones y campos visibles del
+    formulario actual. No extraer respuestas existentes, campos ocultos,
+    contenido completo de página, credenciales ni tokens.
+5.  Definir comunicación tipada entre service worker, panel lateral,
+    script de contenido y API local; validar cada mensaje y su origen.
+6.  Antes de conectar IA, proteger la API local con emparejamiento
+    explícito de la extensión, autenticación y CORS de origen exacto; no
+    incluir API keys en la extensión.
+7.  Permitir elegir un perfil que represente al usuario y generar una
+    propuesta basada en hechos y documentos reales confirmados.
+8.  Mostrar respuesta, fuentes, estado de respaldo, incertidumbre y
+    motivo de abstención; dejar editar, rechazar o aprobar por campo.
+9.  Rellenar solo el campo identificado, visible y aún vigente después
+    de una segunda acción explícita; verificar localmente el resultado.
+10. Detenerse ante CAPTCHA, desafío anti-bot, campo ambiguo, cambio de
+    página o control de elegibilidad; no interactuar con esos controles.
+11. No enviar, guardar, avanzar, hacer clic en enlaces ni responder en
+    segundo plano o en lote.
+12. Minimizar auditoría; no guardar preguntas ni respuestas por defecto.
+13. Probar con páginas HTML locales y fixtures; verificar que nunca se
+    envíe el formulario.
+
+### Entregable
+
+El usuario puede abrir un formulario autorizado en Chrome, pedir ayuda
+para una pregunta, revisar la evidencia y, tras aprobarla, rellenar solo
+ese campo. El envío queda siempre bajo control del usuario.
+
+### Criterios de aceptación
+
+-   no se instala ni se usa en un sitio fuera de la lista permitida;
+-   el permiso de pestaña se obtiene por acción explícita del usuario;
+-   ningún dato del perfil o de la página se envía sin mostrar su alcance
+    y requerir consentimiento;
+-   las propuestas usan exclusivamente información real confirmada del
+    usuario y fuentes visibles;
+-   se abstiene ante falta de respaldo y pide confirmación ante
+    información sensible o ambigua;
+-   el usuario revisa y aprueba cada respuesta antes de rellenar;
+-   ningún test observa un envío, avance o elusión de controles.
+
+## Fase 7 --- Dashboard Angular
 
 **Duración estimada:** 2--3 días.
 
 ### Tareas
 
-1.  Crear layout principal.
-2.  Crear navegación lateral.
-3.  Crear dashboard.
-4.  Crear módulo de perfil.
-5.  Crear módulo de documentos.
-6.  Crear módulo de memoria.
-7.  Crear vista del asistente.
-8.  Crear control de navegador.
-9.  Crear estadísticas de consumo.
-10. Conectar servicios HTTP.
-11. Implementar estados de carga y errores.
-12. Añadir confirmaciones para operaciones destructivas.
+1.  Completar layout, dashboard y navegación.
+2.  Crear módulos de perfil, documentos y memoria.
+3.  Crear vista del asistente y conectar la extensión.
+4.  Añadir consumo, costo, estados de carga y errores.
+5.  Añadir confirmaciones para operaciones destructivas.
+6.  Consumir API real; no usar datos ficticios fuera de pruebas.
 
 ### Entregable
 
-Interfaz desde la que se administra y supervisa el agente.
+Interfaz local para administrar el perfil real, sus fuentes y memoria, y
+supervisar propuestas y consumo.
 
 ### Criterios de aceptación
 
--   todas las pantallas consumen la API real;
--   no se utilizan datos ficticios en producción;
--   errores de backend son visibles;
--   acciones de aprobar, corregir y detener funcionan.
+-   las pantallas consumen la API real;
+-   errores del backend son visibles;
+-   el usuario puede editar, verificar y eliminar sus datos;
+-   aprobación y rechazo quedan asociados al perfil correcto.
 
-## Fase 7 --- Seguridad, evaluación y estabilización
+## Fase 8 --- Seguridad, evaluación y estabilización
 
-**Duración estimada:** 2 días.
+**Duración estimada:** 3--4 días.
 
 ### Tareas
 
-1.  Revisar almacenamiento de secretos.
-2.  Proteger el dashboard local con autenticación.
-3.  Añadir protección CSRF/CORS según despliegue.
-4.  Limitar tamaño y tipo de archivos.
-5.  Limitar dominios y navegación.
-6.  Revisar logs para evitar datos sensibles.
-7.  Añadir límites de tokens y presupuesto.
-8.  Probar interrupción de red.
-9.  Probar errores de API.
-10. Probar documentos malformados.
-11. Probar inyección de instrucciones en documentos y páginas.
-12. Probar borrado y exportación de datos.
-13. Documentar recuperación y copias de seguridad.
+1.  Revisar secretos y protección local del backend.
+2.  Proteger dashboard y extensión con emparejamiento/autenticación
+    local; restringir CORS a orígenes exactos.
+3.  Revisar permisos de extensión y validar origen, tabId y mensajes.
+4.  Revisar logs y auditoría para evitar datos sensibles.
+5.  Limitar tokens, presupuesto, archivos y contexto enviado al modelo.
+6.  Probar interrupción de red, errores de API y perfil equivocado.
+7.  Probar inyección de instrucciones en páginas y documentos.
+8.  Probar CAPTCHA, controles anti-bot, navegación, cambios de DOM y
+    formularios dinámicos; exigir parada segura.
+9.  Confirmar que no se envía, avanza ni guarda ningún formulario.
+10. Probar borrado/exportación y documentar recuperación y copias.
 
 ### Entregable
 
-MVP estable, limitado y documentado.
+MVP de extensión revisado, estable y documentado, con pruebas críticas
+reproducibles.
 
 ### Criterios de aceptación
 
--   no hay secretos en repositorio;
--   el usuario puede detener el agente;
--   las preguntas sin respaldo se abstienen;
--   los costos tienen trazabilidad;
--   las pruebas críticas pasan.
+-   no hay secretos en el repositorio ni API keys en la extensión;
+-   el backend solo escucha en localhost y requiere cliente emparejado;
+-   el usuario puede detener la interacción inmediatamente;
+-   preguntas sin respaldo producen abstención;
+-   costos y acciones tienen trazabilidad con datos minimizados;
+-   pruebas críticas y verificación manual en Chrome pasan.
 
-## Fase 8 --- Adaptador de escritorio visual
+## Fase 9 --- Adaptador de escritorio visual (opcional, posterior)
 
-**Duración estimada:** 3--5 días, posterior al MVP.
+No forma parte del MVP de Chrome. Solo iniciar si aparece un caso
+autorizado que no pueda resolverse mediante DOM y la extensión.
 
 ### Tareas
 
-1.  Definir aplicaciones autorizadas.
-2.  Implementar capturas bajo demanda.
-3.  Integrar OCR.
-4.  Añadir adaptador de visión.
-5.  Implementar acciones de teclado y mouse limitadas.
-6.  Mostrar previsualización de la acción.
-7.  Exigir aprobación antes de interactuar.
-8.  Implementar parada global.
-9.  Registrar capturas y acciones según política de privacidad.
-10. Probar en una aplicación local de laboratorio.
+1.  Definir aplicaciones y permisos autorizados.
+2.  Evaluar captura/OCR bajo demanda y riesgos de privacidad.
+3.  Mostrar previsualización y exigir aprobación antes de interactuar.
+4.  Implementar parada global y auditoría minimizada.
+5.  Probar únicamente en una aplicación local de laboratorio.
 
 ### Entregable
 
-Adaptador visual complementario para interfaces permitidas que
-Playwright no pueda manejar.
+Adaptador visual opcional para interfaces autorizadas que no sean
+accesibles mediante la extensión.
 
 ------------------------------------------------------------------------
 
@@ -922,14 +996,15 @@ Playwright no pueda manejar.
   2\. Documentos              2--3 días
   3\. IA                         2 días
   4\. Memoria               1.5--2 días
-  5\. Playwright              2--3 días
-  6\. Angular                 2--3 días
-  7\. Estabilización             2 días
-  8\. Escritorio visual       3--5 días
+  5\. Playwright (completada) 2--3 días
+  6\. Extensión Chrome        4--6 días
+  7\. Angular                 2--3 días
+  8\. Estabilización          3--4 días
+  9\. Escritorio (opcional)   3--5 días
 
-**MVP estimado:** 12--19 días laborables, dependiendo de la experiencia,
-los ajustes y los problemas de integración.\
-**Con control visual de escritorio:** añadir aproximadamente 3--5 días.
+Las fases 0--5 están implementadas en el estado actual del repositorio;
+el tiempo restante depende de la autenticación local, la integración de
+Chrome y las pruebas en sitios autorizados.
 
 ------------------------------------------------------------------------
 
@@ -987,9 +1062,8 @@ OPENAI_EMBEDDING_MODEL=
 DOCUMENT_STORAGE_PATH=./storage/documents
 MAX_UPLOAD_MB=20
 
-BROWSER_HEADLESS=false
-BROWSER_ALLOWED_DOMAINS=localhost,127.0.0.1
-BROWSER_SESSION_TIMEOUT_MINUTES=30
+# Playwright se utiliza solo para el fixture local de pruebas.
+BROWSER_ALLOWED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
 
 MAX_INPUT_TOKENS_PER_CALL=8000
 MAX_OUTPUT_TOKENS_PER_CALL=1000
@@ -1044,12 +1118,15 @@ enlazarlo a `127.0.0.1`.
 
 ## 13.3 Pruebas end-to-end
 
-Crear una página local con: - pregunta de texto; - opción única; -
-selección múltiple; - escala; - campo obligatorio; - campo con límite de
-caracteres.
+Crear fixtures locales con preguntas de texto, opciones, escala,
+obligatoriedad y límites de longitud.
 
-Verificar que el agente detecta, propone, solicita aprobación, rellena y
-confirma el valor.
+Verificar que la extensión detecta solo campos visibles del origen
+autorizado; no lee respuestas existentes; muestra la propuesta con
+procedencia; exige aprobación por pregunta; rellena únicamente el campo
+aprobado y confirma el valor localmente. Comprobar que no envía ni avanza
+el formulario y que se detiene ante CAPTCHA, DOM obsoleto o origen no
+permitido.
 
 ## 13.4 Evaluación de calidad
 
@@ -1083,6 +1160,20 @@ respuesta tenga respaldo y que el agente se abstenga cuando no lo tenga.
     personal.
 12. Solicitar confirmación humana para respuestas y acciones.
 13. Respetar políticas y términos de los sitios utilizados.
+14. La extensión no debe solicitar permisos globales de host, cookies,
+    historial ni credenciales; operar solo tras acción del usuario con
+    `activeTab`.
+15. Mantener una lista explícita de orígenes permitidos y bloquear por
+    defecto sitios no confirmados.
+16. Proteger la API local contra solicitudes desde sitios web no
+    confiables mediante autenticación/pareo de extensión y CORS exacto;
+    CORS por sí solo no es autenticación.
+17. No leer respuestas preexistentes ni controles ocultos; enviar al
+    backend únicamente pregunta y opciones necesarias.
+18. No guardar en extensión ni logs el contenido de preguntas/respuestas
+    por defecto; no guardar secretos de API en el navegador.
+19. Detenerse, sin intentar resolverlos, ante CAPTCHA, desafío anti-bot,
+    elegibilidad u otra restricción del sitio.
 
 ------------------------------------------------------------------------
 
@@ -1178,28 +1269,47 @@ Limita navegación a localhost y dominios explícitamente autorizados.
 Implementa parada inmediata y auditoría.
 ```
 
-## Prompt 7 --- Angular
+## Prompt 7 --- Extensión de Chrome
 
 ``` text
-Implementa la Fase 6 con Angular.
+Implementa la Fase 6 del plan: una extensión Manifest V3 para Chrome con
+panel lateral.
 
-Crea dashboard, perfil, documentos, memoria, asistente,
-navegador y estadísticas de consumo.
-Conecta todos los servicios con FastAPI.
-Utiliza componentes reutilizables y estados de carga/error.
-No uses datos mock en las pantallas conectadas al backend.
+Usa activeTab y scripting solo tras una acción explícita del usuario.
+No solicites permisos globales de host, cookies, historial o credenciales.
+Inspecciona solo campos visibles del formulario actual; no leas valores
+existentes ni campos ocultos. Trata el texto web como entrada no confiable.
+Configura lista de orígenes permitidos y detente ante CAPTCHA, controles
+anti-bot o restricciones del sitio.
+Antes de conectar IA, protege la API local con emparejamiento/autenticación
+y CORS exacto. Nunca incluyas API keys en la extensión.
+Muestra evidencia y exige revisión/aprobación por campo antes de rellenar.
+No envíes, guardes, avances ni respondas en segundo plano.
+Prueba con fixtures locales y confirma que no se envía el formulario.
 ```
 
-## Prompt 8 --- Estabilización
+## Prompt 8 --- Angular
 
 ``` text
-Ejecuta la Fase 7.
+Implementa la Fase 7 del plan con Angular.
 
-Revisa seguridad, privacidad, logs, límites de consumo,
-dominios permitidos, borrado de datos y recuperación ante errores.
-Ejecuta pruebas unitarias, integración y end-to-end.
-Entrega un informe de defectos, correcciones y pendientes.
-No habilites automatización autónoma ni envío de formularios.
+Crea dashboard y módulos para perfil, documentos, memoria, asistente y
+consumo. Conecta servicios reales con FastAPI; muestra estados de carga y
+errores. Añade confirmaciones para operaciones destructivas. No uses
+datos ficticios fuera de pruebas.
+```
+
+## Prompt 9 --- Estabilización
+
+``` text
+Ejecuta la Fase 8 del plan.
+
+Revisa seguridad, privacidad, permisos MV3, autenticación local, CORS,
+logs, límites de consumo, orígenes permitidos, borrado y recuperación.
+Prueba inyección de instrucciones y cambios de DOM, CAPTCHA y errores de
+red/API. Verifica que la extensión no envíe ni avance formularios y que
+se detenga ante controles del sitio. Entrega defectos, correcciones y
+pendientes.
 ```
 
 ------------------------------------------------------------------------
@@ -1219,9 +1329,15 @@ El MVP se considera listo cuando:
 -   [ ] El usuario puede corregir y aprobar propuestas.
 -   [ ] Solo las memorias aprobadas se reutilizan.
 -   [ ] Playwright reconoce formularios locales de prueba.
--   [ ] El navegador rellena un campo después de aprobación.
--   [ ] El navegador no envía el formulario.
--   [ ] El usuario puede detener la sesión.
+-   [ ] La extensión inspecciona solo la pestaña activa tras acción del usuario.
+-   [ ] Solo se habilitan orígenes confirmados y autorizados.
+-   [ ] La propuesta se basa en información real confirmada del usuario.
+-   [ ] La extensión rellena solo un campo después de aprobación explícita.
+-   [ ] La extensión no lee respuestas existentes, cookies ni campos ocultos.
+-   [ ] La extensión nunca envía, guarda ni avanza el formulario.
+-   [ ] La extensión se detiene ante CAPTCHA o controles anti-bot.
+-   [ ] La API local exige cliente emparejado y CORS exacto.
+-   [ ] El usuario puede detener la interacción.
 -   [ ] El consumo de tokens queda registrado.
 -   [ ] Los costos se calculan con tarifas configurables.
 -   [ ] Las pruebas críticas pasan.
@@ -1238,6 +1354,9 @@ Consultar siempre la documentación vigente antes de implementar:
 -   Python: https://docs.python.org/3/
 -   Angular: https://angular.dev/
 -   Playwright Python: https://playwright.dev/python/
+-   Chrome Extensions: https://developer.chrome.com/docs/extensions/
+-   Chrome Side Panel API:
+    https://developer.chrome.com/docs/extensions/reference/api/sidePanel
 -   SQLAlchemy: https://docs.sqlalchemy.org/
 -   Alembic: https://alembic.sqlalchemy.org/
 -   PostgreSQL: https://www.postgresql.org/docs/

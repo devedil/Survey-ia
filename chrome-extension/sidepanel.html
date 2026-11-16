@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Survey Assistant</title>
+    <link rel="stylesheet" href="sidepanel.css">
+    <script src="sidepanel.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">Integración Chrome · Solo lectura</p>
+        <h1>AI Survey Assistant</h1>
+        <p>
+          Esta primera versión solo muestra controles visibles de la pestaña activa.
+          No envía datos al backend, no rellena campos ni envía formularios.
+        </p>
+      </header>
+
+      <section aria-labelledby="origins-heading">
+        <h2 id="origins-heading">Sitios autorizados</h2>
+        <p class="hint">
+          Agrega el origen exacto solo si el sitio permite este tipo de asistencia.
+          Se requiere HTTPS, excepto para localhost.
+        </p>
+        <form id="origin-form">
+          <label for="origin-input">Origen (por ejemplo, https://encuestas.ejemplo)</label>
+          <input
+            id="origin-input"
+            name="origin"
+            type="url"
+            autocomplete="url"
+            placeholder="https://encuestas.ejemplo"
+            required
+          >
+          <button type="submit">Autorizar origen</button>
+        </form>
+        <ul id="origin-list" class="origin-list" aria-label="Orígenes autorizados"></ul>
+      </section>
+
+      <section aria-labelledby="scan-heading">
+        <h2 id="scan-heading">Pregunta actual</h2>
+        <button id="scan-button" type="button">Inspeccionar pestaña activa</button>
+        <p id="status" class="status" role="status" aria-live="polite">
+          La inspección solo se ejecuta cuando la solicitas.
+        </p>
+        <ol id="control-list" class="control-list"></ol>
+      </section>
+    </main>
+  </body>
+</html>

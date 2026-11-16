@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     app_host: str = "127.0.0.1"
     app_port: int = 8000
     database_url: str = "postgresql+psycopg://app_user:app_password@localhost:5432/ai_survey_assistant"
+    jwt_secret_key: str = "replace_with_a_strong_secret"
     openai_api_key: str = "replace_me"
     openai_default_model: str = ""
     openai_embedding_model: str = ""
@@ -22,6 +23,7 @@ class Settings(BaseSettings):
     max_upload_mb: int = Field(default=20, ge=1)
     document_chunk_size: int = Field(default=1000, ge=1)
     document_chunk_overlap: int = Field(default=150, ge=0)
+    browser_allowed_origins: str = "http://127.0.0.1:8000,http://localhost:8000"
 
     model_config = SettingsConfigDict(
         env_file=".env",

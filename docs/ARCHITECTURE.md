@@ -4,6 +4,9 @@ Este repositorio sigue la propuesta de la Fase 0 del plan maestro:
 
 - backend FastAPI para API local, validación y orquestación de workflows.
 - frontend Angular para panel local y revisión humana.
+- extensión Chrome Manifest V3 para asistir en la pestaña activa; el
+  prototipo actual solo inspecciona controles visibles tras acción del
+  usuario y no se conecta al backend.
 - PostgreSQL con pgvector para almacenamiento estructurado y vectorial.
 - Docker Compose para levantar la infraestructura y mantener entornos reproducibles.
 
@@ -17,9 +20,16 @@ backend/
     documents/
     answers/
     memory/
+    browser/
   tests/
 frontend/
   src/
+chrome-extension/
+  manifest.json
+  service-worker.js
+  sidepanel.html
+  sidepanel.js
+  sidepanel.css
 docs/
 docker-compose.yml
 .env.example
@@ -48,3 +58,9 @@ docker-compose.yml
 - El historial conserva propuestas y decisiones; solo una aprobación/corrección explícita con `save_as_fact=true` crea un hecho reutilizable.
 - Los hechos guardan fuente, estado, sensibilidad, consentimiento, vigencia e historial de revisión; la recuperación excluye hechos no verificados, sensibles, sin consentimiento o vencidos.
 - La memoria ofrece búsqueda, detección de duplicados, exportación y borrado; las propuestas y correcciones se pueden inspeccionar y las correcciones no aprobadas se pueden revertir.
+- Las sesiones Playwright usan contextos aislados, admiten únicamente orígenes loopback configurados y el sitio de prueba local. CAPTCHA, navegación externa y solicitudes de escritura detienen o bloquean la sesión.
+- El navegador inspecciona etiquetas, opciones y atributos de campos, pero no lee valores ya introducidos; `fill-approved` solo usa propuestas persistidas y aprobadas y verifica el valor tras rellenar. Nunca activa controles de envío.
+- `browser_audit_events` conserva acciones y estado sin almacenar valores de formularios.
+- La extensión Chrome usa permisos `activeTab`, `scripting`, `sidePanel` y `storage`, sin permisos globales de host ni lectura de cookies. El permiso de pestaña se usa tras una acción explícita; la lista de orígenes es exacta y local.
+- El primer incremento de la extensión solo muestra controles visibles de formularios y no persiste ni transmite preguntas/respuestas. La integración con perfiles e IA está bloqueada hasta implementar emparejamiento/autenticación local y CORS de origen exacto.
+- Playwright continúa limitado a pruebas locales; no se conecta al perfil autenticado de Chrome.

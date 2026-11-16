@@ -1,61 +1,212 @@
 :host {
- display: block;
- min-height: 100vh;
- font-family: Arial, sans-serif;
- background: linear-gradient(135deg, #0f172a 0%, #111827 100%);
- color: #e5e7eb;
+  display: block;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #0f172a 0%, #111827 100%);
+  color: #e5e7eb;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 main {
- min-height: 100vh;
- display: grid;
- place-items: center;
- padding: 2rem;
+  min-height: 100vh;
+  display: grid;
+  place-items: start center;
+  padding: 2rem 1rem;
 }
 
 .panel {
- width: min(720px, 100%);
- background: rgba(15, 23, 42, 0.78);
- border: 1px solid rgba(148, 163, 184, 0.2);
- border-radius: 20px;
- padding: 2.5rem;
- box-shadow: 0 25px 50px rgba(15, 23, 42, 0.45);
+  width: min(900px, 100%);
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 20px;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  box-shadow: 0 25px 50px rgba(15, 23, 42, 0.45);
 }
 
 .eyebrow {
- margin: 0 0 0.75rem;
- text-transform: uppercase;
- letter-spacing: 0.12em;
- font-size: 0.7rem;
- color: #a5b4fc;
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.7rem;
+  color: #a5b4fc;
 }
 
 h1 {
- margin: 0;
- font-size: clamp(2rem, 4vw, 3.25rem);
- line-height: 1.1;
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.1;
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font-size: 1.15rem;
 }
 
 p {
- margin: 1rem 0 0;
- color: #cbd5e1;
- line-height: 1.6;
+  line-height: 1.6;
+}
+
+.intro,
+.muted,
+small {
+  color: #cbd5e1;
+}
+
+.step {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+  background: rgba(30, 41, 59, 0.55);
+}
+
+label {
+  display: block;
+  margin: 0.75rem 0 0.4rem;
+  font-size: 0.9rem;
+}
+
+input,
+select,
+textarea {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.75rem;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+}
+
+button {
+  margin: 0.35rem 0.5rem 0.35rem 0;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  color: #0f172a;
+  background: #a5b4fc;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  color: #e2e8f0;
+  background: #334155;
+}
+
+button.danger {
+  color: #fff;
+  background: #991b1b;
+}
+
+details {
+  margin: 1rem 0;
+}
+
+summary {
+  cursor: pointer;
+  color: #cbd5e1;
+}
+
+.inline-form {
+  margin-top: 0.5rem;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-heading h2 {
+  margin-bottom: 0;
+}
+
+.status {
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  background: #14532d;
+  color: #dcfce7;
+  font-size: 0.8rem;
+}
+
+.status.blocked {
+  background: #7f1d1d;
+  color: #fee2e2;
+}
+
+.control-list,
+.sources {
+  padding-left: 1.2rem;
+}
+
+.control-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.control-list li:last-child {
+  border-bottom: 0;
+}
+
+.control-list small {
+  display: block;
+  margin-top: 0.35rem;
+}
+
+.question {
+  color: #c7d2fe;
+  font-weight: 700;
+}
+
+.sources {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+.approved,
+.message {
+  color: #86efac;
+}
+
+.error {
+  color: #fca5a5;
 }
 
 .badges {
- display: flex;
- flex-wrap: wrap;
- gap: 0.75rem;
- margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
 }
 
 .badge {
- background: rgba(96, 165, 250, 0.12);
- border: 1px solid rgba(96, 165, 250, 0.25);
- border-radius: 999px;
- padding: 0.5rem 0.9rem;
- font-size: 0.82rem;
- color: #dbeafe;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 999px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.78rem;
+  color: #dbeafe;
+}
+
+@media (max-width: 600px) {
+  .control-list li {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
